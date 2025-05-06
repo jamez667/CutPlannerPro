@@ -21,8 +21,15 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const PADDING = 30;
-  const SCALE_FACTOR = .25;
+  const [scaleFactor, setScaleFactor] = useState(1);
   
+  console.log('PanelCuttingVisualizer rendered with props:', { 
+    stock: stock ? { width: stock.width, length: stock.length } : 'missing', 
+    cuts: cuts?.length || 0, 
+    layout: layout ? 'exists' : 'missing',
+    layoutPlacements: layout?.placements ? `${layout.placements.length} placements` : 'no placements'
+  });
+
   // Helper function to format dimensions based on the current unit
   const formatDimension = (value: number, dimension: 'length' | 'width'): string => {
     if (unit === 'in') {
@@ -49,8 +56,22 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
   useEffect(() => {
     // Reset error state on new render attempt
     setError(null);
+    console.log('useEffect triggered', { 
+      canvasExists: !!canvasRef.current, 
+      layoutExists: !!layout, 
+      placementsExist: !!layout?.placements, 
+      stockExists: !!stock 
+    });
     
-    if (!canvasRef.current || !layout || !layout.placements || !stock) return;
+    if (!canvasRef.current || !layout || !layout.placements || !stock) {
+      console.log('Early return condition met:', {
+        canvasRef: !!canvasRef.current,
+        layout: !!layout,
+        placements: !!layout?.placements,
+        stock: !!stock
+      });
+      return;
+    }
 
     try {
       // Validate dimensions
@@ -61,8 +82,24 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
       
       // Set canvas dimensions with some safety boundaries
       const canvas = canvasRef.current;
-      const maxWidth = Math.min(stock.width * SCALE_FACTOR + (PADDING * 2), 5000); // Cap at 5000px
-      const maxHeight = Math.min(stock.length * SCALE_FACTOR + (PADDING * 2), 5000);
+      
+      // Calculate a dynamic scale factor based on the available space
+      const targetWidth = 800; // Target width in pixels
+      const targetHeight = 600; // Target height in pixels
+      
+      // Calculate scale based on the larger dimension to maintain aspect ratio
+      const widthScale = (targetWidth - PADDING * 2) / stock.width;
+      const heightScale = (targetHeight - PADDING * 2) / stock.length;
+      const calculatedScale = Math.min(widthScale, heightScale, 10); // Cap at 10x for very small panels
+      
+      // Set and store the scale factor
+      const newScaleFactor = Math.max(calculatedScale, 0.1); // Ensure minimum visibility
+      setScaleFactor(newScaleFactor);
+      console.log('Dynamic scale factor:', newScaleFactor);
+      
+      // Apply the scale factor to canvas dimensions
+      const maxWidth = Math.min(stock.length * newScaleFactor + (PADDING * 2), 5000); // Cap at 5000px
+      const maxHeight = Math.min(stock.width * newScaleFactor + (PADDING * 2), 5000);
       
       canvas.width = maxWidth;
       canvas.height = maxHeight;
@@ -77,108 +114,163 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Draw the stock panel
+      console.log('Drawing stock panel:', stock);
       drawSafely(ctx => {
         ctx.fillStyle = '#EEEEEE';
-        ctx.fillRect(PADDING, PADDING, stock.width * SCALE_FACTOR, stock.length * SCALE_FACTOR);
+        ctx.fillRect(PADDING, PADDING, stock.length * newScaleFactor, stock.width * newScaleFactor);
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 2;
-        ctx.strokeRect(PADDING, PADDING, stock.width * SCALE_FACTOR, stock.length * SCALE_FACTOR);
+        ctx.strokeRect(PADDING, PADDING, stock.length * newScaleFactor, stock.width * newScaleFactor);
       });
       
       // Draw each cut piece
+      console.log('About to draw pieces, placements count:', layout.placements.length);
       layout.placements.forEach((placement, index) => {
+        console.log(`Drawing placement ${index}:`, placement);
         const cut = cuts.find(c => c.id === placement.cutId);
-        if (!cut) return;
+        if (!cut) {
+          console.log(`Could not find cut with ID: ${placement.cutId}`);
+          return;
+        }
         
-        drawSafely(ctx => {
-          const colorIndex = index % colors.length;
-          ctx.fillStyle = colors[colorIndex];
-          ctx.fillRect(
-            PADDING + placement.x * SCALE_FACTOR, 
-            PADDING + placement.y * SCALE_FACTOR, 
-            cut.width * SCALE_FACTOR, 
-            cut.length * SCALE_FACTOR
-          );
+        // drawSafely(ctx => {
+        //   console.log('Drawing cut:', cut, 'at placement:', placement);
+        //   const colorIndex = index % colors.length;
+        //   ctx.fillStyle = colors[colorIndex];
           
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(
-            PADDING + placement.x * SCALE_FACTOR, 
-            PADDING + placement.y * SCALE_FACTOR, 
-            cut.width * SCALE_FACTOR, 
-            cut.length * SCALE_FACTOR
-          );
-        });
+        //   // Consider rotation when drawing the rectangle
+        //   const width = placement.rotated ? cut.length : cut.width;
+        //   const length = placement.rotated ? cut.width : cut.length;
+          
+        //   const x = PADDING + placement.x * newScaleFactor;
+        //   const y = PADDING + placement.y * newScaleFactor;
+        //   const scaledWidth = width * newScaleFactor;
+        //   const scaledLength = length * newScaleFactor;
+          
+        //   console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledWidth}x${scaledLength}`);
+          
+        //   ctx.fillRect(x, y, scaledWidth, scaledLength);
+          
+        //   ctx.strokeStyle = '#000000';
+        //   ctx.lineWidth = 1;
+        //   ctx.strokeRect(x, y, scaledWidth, scaledLength);
+        // });
         
-        // Draw labels separately to avoid cascading errors
-        drawSafely(ctx => {
-          // Draw label with properly converted dimensions
-          ctx.fillStyle = '#000000';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          const labelX = PADDING + placement.x * SCALE_FACTOR + (cut.width * SCALE_FACTOR / 2);
-          const labelY = PADDING + placement.y * SCALE_FACTOR + (cut.length * SCALE_FACTOR / 2);
+        // // Draw labels separately to avoid cascading errors
+        // drawSafely(ctx => {
+        //   // Draw label with properly converted dimensions
+        //   ctx.fillStyle = '#000000';
+        //   ctx.font = '12px Arial';
+        //   ctx.textAlign = 'center';
           
-          // Verify position is within canvas bounds
-          if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
-            ctx.fillText(
-              `${formatDimension(cut.width, 'width')}×${formatDimension(cut.length, 'length')} ${unit}`,
-              labelX,
-              labelY
-            );
+        //   // Consider rotation for label placement
+        //   const width = placement.rotated ? cut.length : cut.width;
+        //   const length = placement.rotated ? cut.width : cut.length;
+          
+        //   const labelX = PADDING + placement.x * newScaleFactor + (width * newScaleFactor / 2);
+        //   const labelY = PADDING + placement.y * newScaleFactor + (length * newScaleFactor / 2);
+          
+        //   // Verify position is within canvas bounds
+        //   if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
+        //     // Show dimensions considering rotation
+        //     ctx.fillText(
+        //       `${formatDimension(width, 'width')}×${formatDimension(length, 'length')} ${unit}${placement.rotated ? ' (R)' : ''}`,
+        //       labelX,
+        //       labelY
+        //     );
             
-            // Add cut name if available
-            if (cut.name) {
-              ctx.font = '10px Arial';
-              ctx.fillText(
-                cut.name,
-                labelX,
-                labelY + 15
-              );
-            }
-          }
-        });
+        //     // Add cut name if available
+        //     if (cut.name) {
+        //       ctx.font = '10px Arial';
+        //       ctx.fillText(
+        //         cut.name,
+        //         labelX,
+        //         labelY + 15
+        //       );
+        //     }
+        //   }
+        // });
       });
       
       // Draw kerf lines
       drawSafely(ctx => {
-        const kerfSize = 2;
-        ctx.strokeStyle = '#FF0000';
-        ctx.lineWidth = kerfSize;
-        ctx.setLineDash([5, 3]);
+        // Clear any existing line settings that might interfere
+        ctx.setLineDash([]); 
         
-        // Horizontal kerf lines
-        const processedY = new Set<number>();
+        // Now try to draw the actual kerf lines with extremely visible styling
+        ctx.strokeStyle = '#FF0000';
+        ctx.lineWidth = 6;  // Very thick line
+        ctx.setLineDash([10, 5]); // Very obvious dash pattern
+        
+        // Generate all possible cut positions or use defaults if none found
+        const allHorizontalCuts = new Set<number>();
+        const allVerticalCuts = new Set<number>();
+        
+        // Find cut positions from placements
         layout.placements.forEach(placement => {
           const cut = cuts.find(c => c.id === placement.cutId);
-          if (!cut) return;
+          if (!cut) {
+            return;
+          }
           
-          const y = placement.y + cut.length;
+          // Get dimensions based on rotation
+          const width = placement.rotated ? cut.length : cut.width;
+          const length = placement.rotated ? cut.width : cut.length;
           
-          if (!processedY.has(y) && y < stock.length) {
-            processedY.add(y);
-            ctx.beginPath();
-            ctx.moveTo(PADDING, PADDING + y * SCALE_FACTOR);
-            ctx.lineTo(PADDING + stock.width * SCALE_FACTOR, PADDING + y * SCALE_FACTOR);
-            ctx.stroke();
+          // Add horizontal cuts at bottom edge of each piece
+          const yPos = placement.y + length;
+          if (yPos > 0 && yPos < stock.length) {
+            allHorizontalCuts.add(Math.round(yPos));
+          }
+          
+          // Add vertical cuts at right edge of each piece
+          const xPos = placement.x + width;
+          if (xPos > 0 && xPos < stock.width) {
+            allVerticalCuts.add(Math.round(xPos));
           }
         });
         
-        // Vertical kerf lines
-        const processedX = new Set<number>();
-        layout.placements.forEach(placement => {
-          const cut = cuts.find(c => c.id === placement.cutId);
-          if (!cut) return;
-          
-          const x = placement.x + cut.width;
-          
-          if (!processedX.has(x) && x < stock.width) {
-            processedX.add(x);
-            ctx.beginPath();
-            ctx.moveTo(PADDING + x * SCALE_FACTOR, PADDING);
-            ctx.lineTo(PADDING + x * SCALE_FACTOR, PADDING + stock.length * SCALE_FACTOR);
-            ctx.stroke();
-          }
+        // Draw all horizontal cut lines with counter
+        let horizontalLinesDrawn = 0;
+        allHorizontalCuts.forEach(y => {
+          ctx.beginPath();
+          ctx.moveTo(PADDING, PADDING + y * newScaleFactor);
+          ctx.lineTo(PADDING + stock.width * newScaleFactor, PADDING + y * newScaleFactor);
+          ctx.stroke();
+          horizontalLinesDrawn++;
+        });
+        
+        // Draw all vertical cut lines with counter
+        let verticalLinesDrawn = 0;
+        allVerticalCuts.forEach(x => {
+          ctx.beginPath();
+          ctx.moveTo(PADDING + x * newScaleFactor, PADDING);
+          ctx.lineTo(PADDING + x * newScaleFactor, PADDING + stock.length * newScaleFactor);
+          ctx.stroke();
+          verticalLinesDrawn++;
+        });
+        
+        // Another backup pass with a completely different style
+        ctx.strokeStyle = '#0000FF';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([2, 2]);
+        
+        // Draw horizontal cuts again with backup style
+        allHorizontalCuts.forEach(y => {
+          const yCoord = PADDING + y * newScaleFactor + 2; // Offset slightly for visibility
+          ctx.beginPath();
+          ctx.moveTo(PADDING, yCoord);
+          ctx.lineTo(PADDING + stock.width * newScaleFactor, yCoord);
+          ctx.stroke();
+        });
+        
+        // Draw vertical cuts again with backup style
+        allVerticalCuts.forEach(x => {
+          const xCoord = PADDING + x * newScaleFactor + 2; // Offset slightly for visibility
+          ctx.beginPath();
+          ctx.moveTo(xCoord, PADDING);
+          ctx.lineTo(xCoord, PADDING + stock.length * newScaleFactor);
+          ctx.stroke();
         });
         
         // Reset line dash
@@ -212,16 +304,24 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
           {error}
         </div>
       )}
+      <div style={{ 
+        marginBottom: '10px', 
+        padding: '5px', 
+        backgroundColor: '#f0f0f0', 
+        borderRadius: '4px', 
+        fontSize: '14px' 
+      }}>
+        Scale: {scaleFactor.toFixed(2)}x | Panel: {stock?.width}×{stock?.length} {unit}
+      </div>
       <canvas 
         ref={canvasRef} 
-        width={1200} 
-        height={800} 
         style={{ 
           border: '1px solid #ccc',
           maxWidth: '100%',
           height: 'auto',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          margin: '1rem 0'
+          margin: '1rem 0',
+          display: 'block'
         }}
       />
     </div>
