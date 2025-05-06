@@ -223,14 +223,34 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       const stock = stockWithMeta.stock;
       totalStockArea += stock.length * stock.width;
       
-      // Define placement grid (we can improve this with a more sophisticated algorithm later)
-      const grid: boolean[][] = Array(stock.length).fill(0).map(() => Array(stock.width).fill(false));
+      // Instead of creating a massive grid, use a more efficient data structure
+      // to track occupied spaces (just store the placed rectangles)
+      const placedRectangles: {x: number, y: number, width: number, height: number}[] = [];
       
       // Create a layout for this stock
       const layout: PanelCuttingPlanLayout = {
         stockId: stock.id,
         placements: [],
         wastePercentage: 0 // Will calculate after placements
+      };
+      
+      // Function to check if a position is available for a rectangle
+      const isPositionAvailable = (x: number, y: number, width: number, height: number): boolean => {
+        // Check if the rectangle would go outside the stock boundaries
+        if (x < 0 || y < 0 || x + width > stock.length || y + height > stock.width) {
+          return false;
+        }
+        
+        // Check if the rectangle overlaps with any placed rectangle
+        for (const placed of placedRectangles) {
+          // Check for overlap
+          if (!(x + width <= placed.x || placed.x + placed.width <= x || 
+                y + height <= placed.y || placed.y + placed.height <= y)) {
+            return false;
+          }
+        }
+        
+        return true;
       };
       
       // Try to place each cut
@@ -243,37 +263,55 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
         // Try to find a spot for this cut
         let placed = false;
         
-        // Scan through the grid to find an empty spot
-        for (let x = 0; x <= stock.length - cut.length && !placed; x++) {
-          for (let y = 0; y <= stock.width - cut.width && !placed; y++) {
-            // Check if this spot is available
-            let spotAvailable = true;
-            for (let dx = 0; dx < cut.length && spotAvailable; dx++) {
-              for (let dy = 0; dy < cut.width && spotAvailable; dy++) {
-                if (grid[x + dx][y + dy]) {
-                  spotAvailable = false;
-                }
-              }
-            }
-            
-            // If spot is available, place the cut
-            if (spotAvailable) {
-              // Mark the grid as occupied
-              for (let dx = 0; dx < cut.length; dx++) {
-                for (let dy = 0; dy < cut.width; dy++) {
-                  grid[x + dx][y + dy] = true;
-                }
-              }
+        // Try placing without rotation first
+        // Use a more efficient scanning approach
+        for (let x = 0; x <= stock.length - cut.length && !placed; x += 1) {
+          for (let y = 0; y <= stock.width - cut.width && !placed; y += 1) {
+            // Try to place the cut at this position
+            if (isPositionAvailable(x, y, cut.length, cut.width)) {
+              // Record the placement
+              placedRectangles.push({
+                x, 
+                y, 
+                width: cut.length, 
+                height: cut.width
+              });
               
-              // Add the placement to the layout
               layout.placements.push({
                 cutId: cut.id,
                 x,
                 y,
-                rotated: false // Add the missing required property
+                rotated: false
               });
               
               placed = true;
+            }
+          }
+        }
+        
+        // If not placed, try with rotation if cut dimensions are different
+        if (!placed && cut.length !== cut.width) {
+          for (let x = 0; x <= stock.length - cut.width && !placed; x += 1) {
+            for (let y = 0; y <= stock.width - cut.length && !placed; y += 1) {
+              // Try to place the rotated cut at this position
+              if (isPositionAvailable(x, y, cut.width, cut.length)) {
+                // Record the placement
+                placedRectangles.push({
+                  x, 
+                  y, 
+                  width: cut.width, 
+                  height: cut.length
+                });
+                
+                layout.placements.push({
+                  cutId: cut.id,
+                  x,
+                  y,
+                  rotated: true
+                });
+                
+                placed = true;
+              }
             }
           }
         }
