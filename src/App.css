@@ -1,0 +1,179 @@
+.App {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f0f0f0;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #595959;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  padding-top: 84px;
+}
+
+.sidebar h2 {
+  margin: 0;
+  color: #ffffff; /* Adjusting header color for better contrast */
+  padding: 0 24px 24px;
+  font-size: 1.5rem;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.nav-section {
+  margin: 24px 0;
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.nav-section:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Remove the separator from the last section */
+.nav-section:last-child {
+  padding-bottom: 0;
+}
+
+.nav-section:last-child:after {
+  display: none;
+}
+
+.nav-section h3 {
+  font-size: 0.875rem;
+  color: #e0e0e0; /* Lighter color for section headers */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+  padding: 0 24px 12px;
+  font-weight: 600;
+}
+
+.nav-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-section li {
+  margin: 2px 0;
+}
+
+.nav-section a {
+  color: #ffffff; /* White text for better contrast */
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  font-size: 0.9375rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-section a:hover {
+  background-color: #6e6e6e; /* Slightly lighter grey on hover */
+  color: #ffffff;
+  padding-left: 28px;
+}
+
+.nav-section a::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background-color: #0066cc;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.nav-section a:hover::before {
+  opacity: 1;
+}
+
+.nav-icon {
+  font-size: 20px !important;
+  opacity: 0.9;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 250px;
+  background-color: #f0f0f0;
+  min-height: 100vh;
+}
+
+.App-header {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+}
+
+h1 {
+  margin-bottom: 1rem;
+  font-size: 3rem;
+}
+
+p {
+  font-size: 1.2rem;
+}
+
+.sub-menu {
+  padding-left: 16px !important;
+  margin-top: 4px !important;
+}
+
+.sub-menu li a {
+  padding: 8px 24px;
+  font-size: 0.875rem;
+}
+
+.sub-menu li a:hover {
+  padding-left: 28px;
+}
+
+.app-header {
+  width: 100% !important;
+  margin-left: 0 !important;
+  background-color: white !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+  z-index: 1200 !important;
+}
+
+.app-title {
+  flex-grow: 1;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-item .MuiSvgIcon-root {
+  color: #666;
+  font-size: 20px;
+}
+
+.content-wrapper {
+  padding-top: 84px;
+}
