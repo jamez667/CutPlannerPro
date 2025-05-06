@@ -125,8 +125,8 @@ const App: React.FC = () => {
           <div className="content-wrapper">
             <Routes>
               <Route path="/material-warehouse" element={<MaterialWarehouse key={units} units={units} />} />
-              <Route path="/panel/saved" element={<SavedPanelCuttingPlans units={units === 'mm' ? 'mm' : 'in'} />} />
-              <Route path="/panel/create" element={<PanelCuttingPlans units={units === 'mm' ? 'mm' : 'in'} />} />
+              <Route path="/panel/saved" element={<SavedPanelCuttingPlans units={units === 'metric' ? 'mm' : 'in'} />} />
+              <Route path="/panel/create" element={<PanelCuttingPlans units={units === 'metric' ? 'mm' : 'in'} />} />
               <Route path="/" element={
                 <>
                   <h1>CutPlanner Pro</h1>

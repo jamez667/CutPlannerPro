@@ -115,7 +115,7 @@ const SavedPanelCuttingPlans: React.FC<SavedPanelCuttingPlansProps> = ({ units }
                     <TableCell>
                       {plan.selectedStock.map((stock, idx) => (
                         <div key={idx}>
-                          {stock.description} ({formatDimensionValue(stock.length, 'length', units)} x {formatDimensionValue(stock.width, 'width', units)} {units})
+                          {stock.stock.description} ({formatDimensionValue(stock.stock.length, 'length', units)} x {formatDimensionValue(stock.stock.width, 'width', units)} {units})
                         </div>
                       ))}
                     </TableCell>

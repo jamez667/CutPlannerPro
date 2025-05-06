@@ -15,78 +15,74 @@ const colors = [
   '#FFA07A', '#FFFACD', '#B0E0E6', '#F0E68C', '#E6E6FA'
 ];
 
-const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
-  stock,
-  cuts,
-  layout,
-  unit
-}) => {
+const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, cuts, layout, unit }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const PADDING = 20;
+  const SCALE_FACTOR = 10; // Adjust to fit the canvas
   
   useEffect(() => {
+    if (!canvasRef.current || !layout || !layout.placements) return;
+
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
-    // Calculate scaling factor to fit the panel on canvas
-    const padding = 20;
-    const canvasWidth = canvas.width - padding * 2;
-    const canvasHeight = canvas.height - padding * 2;
-    
-    const scaleX = canvasWidth / stock.length;
-    const scaleY = canvasHeight / stock.width;
-    const scale = Math.min(scaleX, scaleY);
-    
-    const scaledWidth = stock.length * scale;
-    const scaledHeight = stock.width * scale;
-    const offsetX = padding + (canvasWidth - scaledWidth) / 2;
-    const offsetY = padding + (canvasHeight - scaledHeight) / 2;
+
+    // Set canvas size based on stock dimensions
+    canvas.width = stock.width * SCALE_FACTOR + (PADDING * 2);
+    canvas.height = stock.length * SCALE_FACTOR + (PADDING * 2);
     
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Draw the stock panel
-    ctx.fillStyle = '#F5F5F5';
+    ctx.fillStyle = '#EEEEEE';
+    ctx.fillRect(PADDING, PADDING, stock.width * SCALE_FACTOR, stock.length * SCALE_FACTOR);
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
-    ctx.fillRect(offsetX, offsetY, scaledWidth, scaledHeight);
-    ctx.strokeRect(offsetX, offsetY, scaledWidth, scaledHeight);
+    ctx.strokeRect(PADDING, PADDING, stock.width * SCALE_FACTOR, stock.length * SCALE_FACTOR);
     
-    // Add stock dimensions text
-    ctx.fillStyle = '#000000';
-    ctx.font = '14px Arial';
-    ctx.fillText(`${stock.length}${unit} × ${stock.width}${unit}`, offsetX + 5, offsetY + 20);
-    
-    // Draw the cuts
-    layout.cuts.forEach((cutLayout, index) => {
-      const cut = cuts.find(c => c.id === cutLayout.cutId);
+    // Draw each cut piece
+    layout.placements.forEach((placement, index) => {
+      const cut = cuts.find(c => c.id === placement.cutId);
       if (!cut) return;
       
-      // Calculate dimensions based on rotation
-      const cutWidth = cutLayout.rotated ? cut.width : cut.length;
-      const cutHeight = cutLayout.rotated ? cut.length : cut.width;
+      const colorIndex = index % colors.length;
+      ctx.fillStyle = colors[colorIndex];
+      ctx.fillRect(
+        PADDING + placement.x * SCALE_FACTOR, 
+        PADDING + placement.y * SCALE_FACTOR, 
+        cut.width * SCALE_FACTOR, 
+        cut.length * SCALE_FACTOR
+      );
       
-      // Calculate position
-      const cutX = offsetX + cutLayout.x * scale;
-      const cutY = offsetY + cutLayout.y * scale;
-      
-      // Draw the cut rectangle
-      ctx.fillStyle = colors[index % colors.length];
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 1;
-      ctx.fillRect(cutX, cutY, cutWidth * scale, cutHeight * scale);
-      ctx.strokeRect(cutX, cutY, cutWidth * scale, cutHeight * scale);
+      ctx.strokeRect(
+        PADDING + placement.x * SCALE_FACTOR, 
+        PADDING + placement.y * SCALE_FACTOR, 
+        cut.width * SCALE_FACTOR, 
+        cut.length * SCALE_FACTOR
+      );
       
-      // Add cut name and dimensions
+      // Draw label
       ctx.fillStyle = '#000000';
       ctx.font = '12px Arial';
-      const textX = cutX + (cutWidth * scale) / 2 - 40;
-      const textY = cutY + (cutHeight * scale) / 2;
-      ctx.fillText(cut.name, textX, textY);
-      ctx.font = '10px Arial';
-      ctx.fillText(`${cutWidth}${unit} × ${cutHeight}${unit}`, textX, textY + 15);
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        `${cut.width}×${cut.length} ${unit}`,
+        PADDING + placement.x * SCALE_FACTOR + (cut.width * SCALE_FACTOR / 2),
+        PADDING + placement.y * SCALE_FACTOR + (cut.length * SCALE_FACTOR / 2)
+      );
+      
+      // Add cut name if available
+      if (cut.name) {
+        ctx.font = '10px Arial';
+        ctx.fillText(
+          cut.name,
+          PADDING + placement.x * SCALE_FACTOR + (cut.width * SCALE_FACTOR / 2),
+          PADDING + placement.y * SCALE_FACTOR + (cut.length * SCALE_FACTOR / 2) + 15
+        );
+      }
     });
     
     // Draw kerf lines
@@ -97,42 +93,52 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
     
     // Horizontal kerf lines
     const processedY = new Set<number>();
-    layout.cuts.forEach(cutLayout => {
-      const cut = cuts.find(c => c.id === cutLayout.cutId);
+    layout.placements.forEach(placement => {
+      const cut = cuts.find(c => c.id === placement.cutId);
       if (!cut) return;
       
-      const cutHeight = cutLayout.rotated ? cut.length : cut.width;
-      const y = cutLayout.y + cutHeight;
+      const y = placement.y + cut.length;
       
-      if (!processedY.has(y) && y < stock.width) {
+      if (!processedY.has(y) && y < stock.length) {
         processedY.add(y);
         ctx.beginPath();
-        ctx.moveTo(offsetX, offsetY + y * scale);
-        ctx.lineTo(offsetX + scaledWidth, offsetY + y * scale);
+        ctx.moveTo(PADDING, PADDING + y * SCALE_FACTOR);
+        ctx.lineTo(PADDING + stock.width * SCALE_FACTOR, PADDING + y * SCALE_FACTOR);
         ctx.stroke();
       }
     });
     
     // Vertical kerf lines
     const processedX = new Set<number>();
-    layout.cuts.forEach(cutLayout => {
-      const cut = cuts.find(c => c.id === cutLayout.cutId);
+    layout.placements.forEach(placement => {
+      const cut = cuts.find(c => c.id === placement.cutId);
       if (!cut) return;
       
-      const cutWidth = cutLayout.rotated ? cut.width : cut.length;
-      const x = cutLayout.x + cutWidth;
+      const x = placement.x + cut.width;
       
-      if (!processedX.has(x) && x < stock.length) {
+      if (!processedX.has(x) && x < stock.width) {
         processedX.add(x);
         ctx.beginPath();
-        ctx.moveTo(offsetX + x * scale, offsetY);
-        ctx.lineTo(offsetX + x * scale, offsetY + scaledHeight);
+        ctx.moveTo(PADDING + x * SCALE_FACTOR, PADDING);
+        ctx.lineTo(PADDING + x * SCALE_FACTOR, PADDING + stock.length * SCALE_FACTOR);
         ctx.stroke();
       }
     });
     
     // Reset line dash
     ctx.setLineDash([]);
+    
+    // Draw waste percentage if available
+    if (layout.wastePercentage !== undefined) {
+      ctx.fillStyle = '#000000';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText(
+        `Waste: ${Math.round(layout.wastePercentage * 100)}%`,
+        PADDING,
+        canvas.height - PADDING / 2
+      );
+    }
     
   }, [stock, cuts, layout, unit]);
 

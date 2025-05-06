@@ -1,14 +1,22 @@
 import { PanelCut } from './PanelCut';
 import { PanelStock } from './PanelStock';
 
+export interface PanelCuttingPlanStockItem {
+  stock: PanelStock;
+  priority: number;
+}
+
+export interface CutPlacement {
+  cutId: number;
+  x: number;
+  y: number;
+  rotated: boolean;
+}
+
 export interface PanelCuttingPlanLayout {
   stockId: number;
-  cuts: Array<{
-    cutId: number;
-    x: number;
-    y: number;
-    rotated: boolean;
-  }>;
+  placements: CutPlacement[];
+  wastePercentage: number;
 }
 
 export interface PanelCuttingPlan {
@@ -16,7 +24,7 @@ export interface PanelCuttingPlan {
   name: string;
   createdDate: Date;
   updatedDate: Date;
-  selectedStock: PanelStock[];
+  selectedStock: PanelCuttingPlanStockItem[];
   requiredCuts: PanelCut[];
   layouts: PanelCuttingPlanLayout[];
   wastagePercentage: number;
