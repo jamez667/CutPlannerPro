@@ -5,10 +5,13 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ViewTimelineIcon from '@mui/icons-material/ViewTimeline';
 import GridOnIcon from '@mui/icons-material/GridOn';
 import InventoryIcon from '@mui/icons-material/Inventory';
+import CalculatorIcon from '@mui/icons-material/Calculate';
 import { Select, MenuItem, IconButton, Avatar, AppBar, Toolbar, Typography, SelectChangeEvent } from '@mui/material';
 import LanguageIcon from '@mui/icons-material/Language';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import MaterialWarehouse from './pages/MaterialWarehouse';
+import SavedPanelCuttingPlans from './pages/SavedPanelCuttingPlans';
+import PanelCuttingPlans from './pages/PanelCuttingPlans';
 import Cookies from 'js-cookie';
 
 const App: React.FC = () => {
@@ -107,7 +110,11 @@ const App: React.FC = () => {
                 <li>
                   <Link to="/material-warehouse">
                     <InventoryIcon className="nav-icon" />
-                    Material Warehouse
+                    Stock
+                  </Link>
+                  <Link to="/calc-linearfeet">
+                    <CalculatorIcon className="nav-icon" />
+                    Calculator - Linear Feet
                   </Link>
                 </li>
               </ul>
@@ -118,6 +125,8 @@ const App: React.FC = () => {
           <div className="content-wrapper">
             <Routes>
               <Route path="/material-warehouse" element={<MaterialWarehouse key={units} units={units} />} />
+              <Route path="/panel/saved" element={<SavedPanelCuttingPlans units={units === 'mm' ? 'mm' : 'in'} />} />
+              <Route path="/panel/create" element={<PanelCuttingPlans units={units === 'mm' ? 'mm' : 'in'} />} />
               <Route path="/" element={
                 <>
                   <h1>CutPlanner Pro</h1>
