@@ -1,11 +1,13 @@
 import React, { useRef, useEffect } from 'react';
 import { PanelStock } from '../interfaces/PanelStock';
-import { PanelCut } from '../interfaces/PanelCut';
+import { PanelPiece } from '../interfaces/PanelPiece';
 import { PanelCuttingPlanLayout } from '../interfaces/PanelCuttingPlan';
+import { convertFromMetric } from '../utils/unitConversion';
+import { formatDimensionValue } from '../utils/formatters';
 
 interface PanelCuttingVisualizerProps {
   stock: PanelStock;
-  cuts: PanelCut[];
+  cuts: PanelPiece[];
   layout: PanelCuttingPlanLayout;
   unit: string;
 }
@@ -19,6 +21,16 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const PADDING = 20;
   const SCALE_FACTOR = 10; // Adjust to fit the canvas
+  
+  // Helper function to format dimensions based on the current unit
+  const formatDimension = (value: number, dimension: 'length' | 'width'): string => {
+    if (unit === 'in') {
+      // We need to convert from mm to inches since all stored values are in mm
+      const inchValue = convertFromMetric(value, 'in');
+      return formatDimensionValue(inchValue, dimension, unit, false);
+    }
+    return `${Math.round(value)}`;
+  };
   
   useEffect(() => {
     if (!canvasRef.current || !layout || !layout.placements) return;
@@ -64,12 +76,12 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
         cut.length * SCALE_FACTOR
       );
       
-      // Draw label
+      // Draw label with properly converted dimensions
       ctx.fillStyle = '#000000';
       ctx.font = '12px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(
-        `${cut.width}×${cut.length} ${unit}`,
+        `${formatDimension(cut.width, 'width')}×${formatDimension(cut.length, 'length')} ${unit}`,
         PADDING + placement.x * SCALE_FACTOR + (cut.width * SCALE_FACTOR / 2),
         PADDING + placement.y * SCALE_FACTOR + (cut.length * SCALE_FACTOR / 2)
       );

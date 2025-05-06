@@ -1,4 +1,4 @@
-import { PanelCut } from './PanelCut';
+import { PanelPiece } from './PanelPiece';
 import { PanelStock } from './PanelStock';
 
 export interface PanelCuttingPlanStockItem {
@@ -25,7 +25,7 @@ export interface PanelCuttingPlan {
   createdDate: Date;
   updatedDate: Date;
   selectedStock: PanelCuttingPlanStockItem[];
-  requiredCuts: PanelCut[];
+  requiredCuts: PanelPiece[];
   layouts: PanelCuttingPlanLayout[];
   wastagePercentage: number;
   notes: string;

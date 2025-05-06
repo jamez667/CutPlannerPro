@@ -4,17 +4,18 @@ import {
   TextField, FormControl, InputLabel, Select, MenuItem,
   FormHelperText
 } from '@mui/material';
-import { PanelCut } from '../interfaces/PanelCut';
+import { PanelPiece } from '../interfaces/PanelPiece';
+import { convertToMetric } from '../utils/unitConversion';
 
-interface AddPanelCutDialogProps {
+interface AddPanelPieceDialogProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (cut: PanelCut) => void;
+  onAdd: (cut: PanelPiece) => void;
   unit: string;
   nextId: number;
 }
 
-const AddPanelCutDialog: React.FC<AddPanelCutDialogProps> = ({ 
+const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({ 
   open, onClose, onAdd, unit, nextId 
 }) => {
   const [name, setName] = useState('');
@@ -56,11 +57,16 @@ const AddPanelCutDialog: React.FC<AddPanelCutDialogProps> = ({
 
   const handleSubmit = () => {
     if (validateForm()) {
-      const newCut: PanelCut = {
+      // Convert dimensions to metric (mm) if the current unit is inches
+      const lengthValue = Number(length);
+      const widthValue = Number(width);
+      
+      const newCut: PanelPiece = {
         id: nextId,
         name: name.trim(),
-        length: Number(length),
-        width: Number(width),
+        // Convert to internal representation (mm) if using inches
+        length: unit === 'in' ? convertToMetric(lengthValue, 'in') : lengthValue,
+        width: unit === 'in' ? convertToMetric(widthValue, 'in') : widthValue,
         quantity: Number(quantity),
         grain,
         notes: notes.trim()
@@ -151,4 +157,4 @@ const AddPanelCutDialog: React.FC<AddPanelCutDialogProps> = ({
   );
 };
 
-export default AddPanelCutDialog;
+export default AddPanelPieceDialog;

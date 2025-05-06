@@ -1,4 +1,4 @@
-export interface PanelCut {
+export interface PanelPiece {
   id: number;
   name: string;
   length: number;

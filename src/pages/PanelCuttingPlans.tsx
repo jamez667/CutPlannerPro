@@ -36,9 +36,9 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import { PanelStock } from '../interfaces/PanelStock';
-import { PanelCut } from '../interfaces/PanelCut';
+import { PanelPiece } from '../interfaces/PanelPiece';
 import { PanelCuttingPlan, PanelCuttingPlanStockItem, PanelCuttingPlanLayout } from '../interfaces/PanelCuttingPlan';
-import AddPanelCutDialog from '../components/AddPanelCutDialog';
+import AddPanelPieceDialog from '../components/AddPanelCutDialog';
 import AddPanelDialog from '../components/AddPanelDialog';
 import PanelCuttingVisualizer from '../components/PanelCuttingVisualizer';
 import { convertFromMetric, convertToMetric } from '../utils/unitConversion';
@@ -53,7 +53,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
   const [availablePanelStocks, setAvailablePanelStocks] = useState<PanelStock[]>([]);
   const [selectedStockItems, setSelectedStockItems] = useState<PanelCuttingPlanStockItem[]>([]);
   const [selectedStockId, setSelectedStockId] = useState<number | null>(null);
-  const [requiredCuts, setRequiredCuts] = useState<PanelCut[]>([]);
+  const [requiredCuts, setRequiredCuts] = useState<PanelPiece[]>([]);
   const [generatedPlan, setGeneratedPlan] = useState<PanelCuttingPlan | null>(null);
   const [addPanelCutDialogOpen, setAddPanelCutDialogOpen] = useState<boolean>(false);
   const [addPanelDialogOpen, setAddPanelDialogOpen] = useState<boolean>(false);
@@ -156,7 +156,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
   };
 
   // Handle submitting a cut
-  const handleCutSubmit = (cutData: Omit<PanelCut, 'id'>) => {
+  const handleCutSubmit = (cutData: Omit<PanelPiece, 'id'>) => {
     const newId = requiredCuts.length === 0 ? 1 : Math.max(...requiredCuts.map(cut => cut.id)) + 1;
     setRequiredCuts(cuts => [...cuts, { ...cutData, id: newId }]);
     setAddPanelCutDialogOpen(false);
@@ -187,7 +187,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
     }
     
     // Expand cuts based on quantity
-    const expandedCuts: PanelCut[] = [];
+    const expandedCuts: PanelPiece[] = [];
     plannedCuts.forEach(cut => {
       for (let i = 0; i < cut.quantity; i++) {
         expandedCuts.push({
@@ -470,17 +470,17 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
           </TableContainer>
         </Box>
         
-        {/* Cuts Needed */}
+        {/* Pieces Needed */}
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">Cuts Needed</Typography>
+            <Typography variant="h6">Pieces Needed</Typography>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleAddCutClick}
               disabled={!selectedStock}
             >
-              Add Cut
+              Add Piece
             </Button>
           </Box>
           
@@ -488,7 +488,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
             <DataGrid
               rows={requiredCuts}
               columns={[
-                { field: 'label', headerName: 'Label', width: 120 },
+                { field: 'name', headerName: 'Name', width: 120 },
                 { field: 'quantity', headerName: 'Qty', width: 80, type: 'number' },
                 { 
                   field: 'length', 
@@ -570,8 +570,8 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
         </Box>
       </Paper>
       
-      {/* Add Cut Dialog */}
-      <AddPanelCutDialog
+      {/* Add Piece Dialog */}
+      <AddPanelPieceDialog
         open={addPanelCutDialogOpen}
         onClose={handleCutDialogClose}
         onAdd={handleCutSubmit}
@@ -634,7 +634,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
             return (
               <Box key={layout.stockId} sx={{ mt: 3, mb: 5, border: '1px solid #ccc', padding: 2 }}>
                 <Typography variant="h6">
-                  Stock: {stockItem.description} ({stockItem.length} x {stockItem.width} {useMetric ? 'mm' : 'in'})
+                  Stock: {stockItem.description} ({convertFromMetric(stockItem.length, units)} x {convertFromMetric(stockItem.width, units)} {useMetric ? 'mm' : 'in'})
                 </Typography>
                 <Typography variant="body2">
                   Wastage for this sheet: {layout.wastePercentage}%
