@@ -253,7 +253,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       // Function to check if a position is available for a rectangle
       const isPositionAvailable = (x: number, y: number, length: number, width: number): boolean => {
         // Check if the rectangle would go outside the stock boundaries
-        if (x < 0 || y < 0 || x + width > stock.width || y + length > stock.length) {
+        if (x < 0 || y < 0 || x + length > stock.length || y + width > stock.width) {
           return false;
         }
         
@@ -368,6 +368,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
     
     // Calculate overall waste percentage
     let totalUsedArea = 0;
+    console.log('layout count:', layouts.length);
     layouts.forEach(layout => {
       layout.placements.forEach(placement => {
         const expandedPiece = expandedPieces.find(c => c.id === placement.pieceId);
