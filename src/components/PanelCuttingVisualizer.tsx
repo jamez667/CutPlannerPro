@@ -42,7 +42,9 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
     if (unit === 'in') {
       // We need to convert from mm to inches since all stored values are in mm
       const inchValue = convertFromMetric(value, 'in');
-      return formatDimensionValue(inchValue, dimension, unit, false);
+      // Round to nearest 1/16 inch for display purposes
+      const roundedValue = Math.round(inchValue * 16) / 16;
+      return formatDimensionValue(roundedValue, dimension, unit, false);
     }
     return `${Math.round(value)}`;
   };
@@ -285,32 +287,44 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           const width = placement.rotated ? piece.length : piece.width;
           const length = placement.rotated ? piece.width : piece.length;
           
-          // Add horizontal cuts at bottom edge of each piece
-          const yPos = placement.y + width + (kerfSize / 2); // Add half kerf size
-          if (yPos > 0 && yPos < stock.length) {
-            allHorizontalCuts.add(Math.round(yPos));
+          // Add horizontal cuts at top AND bottom edge of each piece
+          // Add top edge with kerf positioned exactly at the edge (no offset)
+          const yTopPos = placement.y;
+          if (yTopPos > 0 && yTopPos < stock.width) {
+            allHorizontalCuts.add(Math.round(yTopPos));
           }
           
-          // Add vertical cuts at right edge of each piece
-          const xPos = placement.x + length + (kerfSize / 2); // Add half kerf size
-          if (xPos > 0 && xPos < stock.width) {
-            allVerticalCuts.add(Math.round(xPos));
+          // Add bottom edge with kerf positioned after the piece (full kerf width)
+          const yBottomPos = placement.y + width;
+          if (yBottomPos > 0 && yBottomPos < stock.width) {
+            allHorizontalCuts.add(Math.round(yBottomPos));
+          }
+          
+          // ONLY add vertical cuts at RIGHT edge of each piece
+          // Add right edge with kerf positioned after the piece (full kerf width)
+          const xRightPos = placement.x + length;
+          if (xRightPos > 0 && xRightPos < stock.length) {
+            allVerticalCuts.add(Math.round(xRightPos));
           }
         });
         
+        // Filter out cuts that are too close to each other (within kerf width)
+        const filteredHorizontalCuts = Array.from(allHorizontalCuts).sort((a, b) => a - b);
+        const filteredVerticalCuts = Array.from(allVerticalCuts).sort((a, b) => a - b);
+        
         // Draw all horizontal cut lines with counter
         let horizontalLinesDrawn = 0;
-        allHorizontalCuts.forEach(y => {
+        filteredHorizontalCuts.forEach(y => {
           ctx.beginPath();
           ctx.moveTo(PADDING, PADDING + y * newScaleFactor);
-          ctx.lineTo(PADDING + stock.length * newScaleFactor, PADDING + y * newScaleFactor); // Fixed: Use length instead of width
+          ctx.lineTo(PADDING + stock.length * newScaleFactor, PADDING + y * newScaleFactor);
           ctx.stroke();
           horizontalLinesDrawn++;
         });
         
         // Draw all vertical cut lines with counter
         let verticalLinesDrawn = 0;
-        allVerticalCuts.forEach(x => {
+        filteredVerticalCuts.forEach(x => {
           ctx.beginPath();
           ctx.moveTo(PADDING + x * newScaleFactor, PADDING);
           ctx.lineTo(PADDING + x * newScaleFactor, PADDING + stock.width * newScaleFactor);
@@ -329,6 +343,9 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         
         // Reset line dash
         ctx.setLineDash([]);
+        
+        // Log number of cut lines drawn for debugging
+        console.log(`Drew ${horizontalLinesDrawn} horizontal cuts and ${verticalLinesDrawn} vertical cuts`);
       });
       
       // Draw waste percentage if available

@@ -251,20 +251,22 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       };
       
       // Function to check if a position is available for a rectangle
+      // Modified to consider kerf width
       const isPositionAvailable = (x: number, y: number, length: number, width: number): boolean => {
         // Check if the rectangle would go outside the stock boundaries
         if (x < 0 || y < 0 || x + length > stock.length || y + width > stock.width) {
           return false;
         }
         
-        // Check if the rectangle overlaps with any placed rectangle
+        // Check if the rectangle overlaps with any placed rectangle (including kerf spacing)
         for (const placed of placedRectangles) {
-          // Fixed overlap check: two rectangles overlap unless one is completely to the left, right, above, or below the other
-          if (!(x >= placed.x + placed.length || // New rectangle is completely to the right
-                placed.x >= x + length ||       // New rectangle is completely to the left
-                y >= placed.y + placed.width || // New rectangle is completely below
-                placed.y >= y + width)) {      // New rectangle is completely above
-            return false; // Overlap detected
+          // Add kerf size to the overlap check to ensure space for the saw blade
+          // Two rectangles overlap if their edges are closer than the kerf width
+          if (!(x >= placed.x + placed.length + kerfSize || // New rectangle is to the right with kerf space
+                placed.x >= x + length + kerfSize ||       // New rectangle is to the left with kerf space
+                y >= placed.y + placed.width + kerfSize || // New rectangle is below with kerf space
+                placed.y >= y + width + kerfSize)) {      // New rectangle is above with kerf space
+            return false; // Overlap detected or insufficient kerf space
           }
         }
         
@@ -303,29 +305,9 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
         // Try to find a spot for this piece
         let placed = false;
         
-        // if (shouldTryRotatedFirst && canRotate) {
-        //   // Try placing with rotation first
-        //   for (let x = 0; x <= stock.width - piece.length && !placed; x += 1) {
-        //     for (let y = 0; y <= stock.length - piece.width && !placed; y += 1) {
-        //       if (isPositionAvailable(x, y, piece.length, piece.width)) {
-        //         placedRectangles.push({
-        //           x, y, length: piece.width, width: piece.length
-        //         });
-                
-        //         layout.placements.push({
-        //           pieceId: piece.id,
-        //           x, y,
-        //           rotated: true // Rotated
-        //         });
-                
-        //         placed = true;
-        //       }
-        //     }
-        //   }
-        // }
-
         // Try placing without rotation (either as first attempt or as fallback)
         if (!placed) {
+          // Iterate with kerf-sized steps for more efficient packing
           for (let x = 0; x <= stock.length - piece.length && !placed; x += 1) {
             for (let y = 0; y <= stock.width - piece.width && !placed; y += 1) {
               if (isPositionAvailable(x, y, piece.length, piece.width)) {
@@ -345,7 +327,26 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
           }
         }
 
-
+        // If not placed without rotation, try with rotation if allowed
+        if (!placed && canRotate) {
+          for (let x = 0; x <= stock.length - piece.width && !placed; x += 1) {
+            for (let y = 0; y <= stock.width - piece.length && !placed; y += 1) {
+              if (isPositionAvailable(x, y, piece.width, piece.length)) {
+                placedRectangles.push({
+                  x, y, length: piece.width, width: piece.length
+                });
+                
+                layout.placements.push({
+                  pieceId: piece.id,
+                  x, y,
+                  rotated: true // Rotated
+                });
+                
+                placed = true;
+              }
+            }
+          }
+        }
       }
       
       // Calculate waste percentage for this layout
