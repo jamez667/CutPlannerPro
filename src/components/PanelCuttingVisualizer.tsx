@@ -286,13 +286,13 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           const length = placement.rotated ? piece.width : piece.length;
           
           // Add horizontal cuts at bottom edge of each piece
-          const yPos = placement.y + length + (kerfSize / 2); // Add half kerf size
+          const yPos = placement.y + width + (kerfSize / 2); // Add half kerf size
           if (yPos > 0 && yPos < stock.length) {
             allHorizontalCuts.add(Math.round(yPos));
           }
           
           // Add vertical cuts at right edge of each piece
-          const xPos = placement.x + width + (kerfSize / 2); // Add half kerf size
+          const xPos = placement.x + length + (kerfSize / 2); // Add half kerf size
           if (xPos > 0 && xPos < stock.width) {
             allVerticalCuts.add(Math.round(xPos));
           }
