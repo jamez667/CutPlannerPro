@@ -7,7 +7,7 @@ import { formatDimensionValue } from '../utils/formatters';
 
 interface PanelCuttingVisualizerProps {
   stock: PanelStock;
-  cuts: PanelPiece[];
+  pieces: PanelPiece[];
   layout: PanelCuttingPlanLayout;
   unit: string;
 }
@@ -17,7 +17,7 @@ const colors = [
   '#FFA07A', '#FFFACD', '#B0E0E6', '#F0E68C', '#E6E6FA'
 ];
 
-const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, cuts, layout, unit }) => {
+const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, pieces, layout, unit }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const PADDING = 30;
@@ -25,7 +25,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
   
   console.log('PanelCuttingVisualizer rendered with props:', { 
     stock: stock ? { width: stock.width, length: stock.length } : 'missing', 
-    cuts: cuts?.length || 0, 
+    pieces: pieces?.length || 0, 
     layout: layout ? 'exists' : 'missing',
     layoutPlacements: layout?.placements ? `${layout.placements.length} placements` : 'no placements'
   });
@@ -123,73 +123,75 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
         ctx.strokeRect(PADDING, PADDING, stock.length * newScaleFactor, stock.width * newScaleFactor);
       });
       
-      // Draw each cut piece
-      console.log('About to draw pieces, placements count:', layout.placements.length);
+      
+      // Draw each piece
+      console.log('About to draw pieces, placements count:', layout.placements);
       layout.placements.forEach((placement, index) => {
         console.log(`Drawing placement ${index}:`, placement);
-        const cut = cuts.find(c => c.id === placement.cutId);
-        if (!cut) {
-          console.log(`Could not find cut with ID: ${placement.cutId}`);
+        console.log('pieces:', pieces);
+        const piece = pieces.find(c => c.id === placement.pieceId);
+        if (!piece) {
+          console.log(`Could not find piece with ID: ${placement.pieceId}`);
           return;
         }
+
+        drawSafely(ctx => {
+          console.log('Drawing piece:', piece, 'at placement:', placement);
+          const colorIndex = index % colors.length;
+          ctx.fillStyle = colors[colorIndex];
+          
+          // Consider rotation when drawing the rectangle
+          const width = placement.rotated ? piece.length : piece.width;
+          const length = placement.rotated ? piece.width : piece.length;
+          
+          const x = PADDING + placement.x * newScaleFactor;
+          const y = PADDING + placement.y * newScaleFactor;
+          const scaledWidth = width * newScaleFactor;
+          const scaledLength = length * newScaleFactor;
+          
+          console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledWidth}x${scaledLength}`);
+          
+          ctx.fillRect(x, y, scaledWidth, scaledLength);
+          
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x, y, scaledWidth, scaledLength);
+        });
         
-        // drawSafely(ctx => {
-        //   console.log('Drawing cut:', cut, 'at placement:', placement);
-        //   const colorIndex = index % colors.length;
-        //   ctx.fillStyle = colors[colorIndex];
+        // Draw labels separately to avoid cascading errors
+        drawSafely(ctx => {
+          // Draw label with properly converted dimensions
+          ctx.fillStyle = '#000000';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
           
-        //   // Consider rotation when drawing the rectangle
-        //   const width = placement.rotated ? cut.length : cut.width;
-        //   const length = placement.rotated ? cut.width : cut.length;
+          // Consider rotation for label placement
+          const width = placement.rotated ? piece.length : piece.width;
+          const length = placement.rotated ? piece.width : piece.length;
           
-        //   const x = PADDING + placement.x * newScaleFactor;
-        //   const y = PADDING + placement.y * newScaleFactor;
-        //   const scaledWidth = width * newScaleFactor;
-        //   const scaledLength = length * newScaleFactor;
+          const labelX = PADDING + placement.x * newScaleFactor + (width * newScaleFactor / 2);
+          const labelY = PADDING + placement.y * newScaleFactor + (length * newScaleFactor / 2);
           
-        //   console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledWidth}x${scaledLength}`);
-          
-        //   ctx.fillRect(x, y, scaledWidth, scaledLength);
-          
-        //   ctx.strokeStyle = '#000000';
-        //   ctx.lineWidth = 1;
-        //   ctx.strokeRect(x, y, scaledWidth, scaledLength);
-        // });
-        
-        // // Draw labels separately to avoid cascading errors
-        // drawSafely(ctx => {
-        //   // Draw label with properly converted dimensions
-        //   ctx.fillStyle = '#000000';
-        //   ctx.font = '12px Arial';
-        //   ctx.textAlign = 'center';
-          
-        //   // Consider rotation for label placement
-        //   const width = placement.rotated ? cut.length : cut.width;
-        //   const length = placement.rotated ? cut.width : cut.length;
-          
-        //   const labelX = PADDING + placement.x * newScaleFactor + (width * newScaleFactor / 2);
-        //   const labelY = PADDING + placement.y * newScaleFactor + (length * newScaleFactor / 2);
-          
-        //   // Verify position is within canvas bounds
-        //   if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
-        //     // Show dimensions considering rotation
-        //     ctx.fillText(
-        //       `${formatDimension(width, 'width')}×${formatDimension(length, 'length')} ${unit}${placement.rotated ? ' (R)' : ''}`,
-        //       labelX,
-        //       labelY
-        //     );
+          // Verify position is within canvas bounds
+          if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
+            // Show dimensions considering rotation
+            ctx.fillText(
+              `${formatDimension(width, 'width')}×${formatDimension(length, 'length')} ${unit}${placement.rotated ? ' (R)' : ''}`,
+              labelX,
+              labelY
+            );
             
-        //     // Add cut name if available
-        //     if (cut.name) {
-        //       ctx.font = '10px Arial';
-        //       ctx.fillText(
-        //         cut.name,
-        //         labelX,
-        //         labelY + 15
-        //       );
-        //     }
-        //   }
-        // });
+            // Add piece name if available
+            if (piece.name) {
+              ctx.font = '10px Arial';
+              ctx.fillText(
+                piece.name,
+                labelX,
+                labelY + 15
+              );
+            }
+          }
+        });
       });
       
       // Draw kerf lines
@@ -202,20 +204,21 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
         ctx.lineWidth = 6;  // Very thick line
         ctx.setLineDash([10, 5]); // Very obvious dash pattern
         
-        // Generate all possible cut positions or use defaults if none found
+        // Generate all possible piece positions or use defaults if none found
         const allHorizontalCuts = new Set<number>();
         const allVerticalCuts = new Set<number>();
         
         // Find cut positions from placements
         layout.placements.forEach(placement => {
-          const cut = cuts.find(c => c.id === placement.cutId);
-          if (!cut) {
+          console.log('Processing placement:', placement);
+          const piece = pieces.find(c => c.id === placement.pieceId);
+          if (!piece) {
             return;
           }
           
           // Get dimensions based on rotation
-          const width = placement.rotated ? cut.length : cut.width;
-          const length = placement.rotated ? cut.width : cut.length;
+          const width = placement.rotated ? piece.length : piece.width;
+          const length = placement.rotated ? piece.width : piece.length;
           
           // Add horizontal cuts at bottom edge of each piece
           const yPos = placement.y + length;
@@ -295,7 +298,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
       console.error('Error in canvas rendering:', err);
       setError('Failed to render visualization');
     }
-  }, [stock, cuts, layout, unit]);
+  }, [stock, pieces, layout, unit]);
 
   return (
     <div className="panel-cutting-visualizer">
@@ -312,6 +315,28 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
         fontSize: '14px' 
       }}>
         Scale: {scaleFactor.toFixed(2)}x | Panel: {stock?.width}×{stock?.length} {unit}
+      </div>
+      {/* List of Pieces */}
+      <div>
+        <strong>Pieces:</strong>
+        <ul>
+          {pieces.map(piece => (
+            <li key={piece.id}>
+              {piece.name ? `${piece.name} ` : ''}({piece.width}x{piece.length})
+            </li>
+          ))}
+        </ul>
+      </div>
+      {/* List of Placements */}
+      <div>
+        <strong>Placements:</strong>
+        <ul>
+          {layout.placements.map((placement, index) => (
+            <li key={index}>
+              Piece Id: {placement.pieceId}, X: {placement.x}, Y: {placement.y}, Rotated: {placement.rotated ? 'Yes' : 'No'}
+            </li>
+          ))}
+        </ul>
       </div>
       <canvas 
         ref={canvasRef} 

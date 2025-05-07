@@ -10,9 +10,9 @@ import { convertToMetric } from '../utils/unitConversion';
 interface AddPanelPieceDialogProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (cut: PanelPiece) => void;
+  onAdd: (piece: PanelPiece) => void;
   unit: string;
-  nextId: number;
+  nextId: string;
 }
 
 const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({ 
@@ -61,7 +61,7 @@ const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({
       const lengthValue = Number(length);
       const widthValue = Number(width);
       
-      const newCut: PanelPiece = {
+      const newPiece: PanelPiece = {
         id: nextId,
         name: name.trim(),
         // Convert to internal representation (mm) if using inches
@@ -71,7 +71,7 @@ const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({
         grain,
         notes: notes.trim()
       };
-      onAdd(newCut);
+      onAdd(newPiece);
       handleClose();
     }
   };
@@ -89,7 +89,7 @@ const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add New Panel Cut</DialogTitle>
+      <DialogTitle>Add New Piece</DialogTitle>
       <DialogContent>
         <TextField
           margin="dense"

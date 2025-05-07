@@ -1,5 +1,5 @@
 export interface PanelPiece {
-  id: number;
+  id: string;
   name: string;
   length: number;
   width: number;

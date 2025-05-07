@@ -53,7 +53,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
   const [availablePanelStocks, setAvailablePanelStocks] = useState<PanelStock[]>([]);
   const [selectedStockItems, setSelectedStockItems] = useState<PanelCuttingPlanStockItem[]>([]);
   const [selectedStockId, setSelectedStockId] = useState<number | null>(null);
-  const [requiredCuts, setRequiredCuts] = useState<PanelPiece[]>([]);
+  const [requiredPieces, setRequiredPieces] = useState<PanelPiece[]>([]);
   const [generatedPlan, setGeneratedPlan] = useState<PanelCuttingPlan | null>(null);
   const [addPanelCutDialogOpen, setAddPanelCutDialogOpen] = useState<boolean>(false);
   const [addPanelDialogOpen, setAddPanelDialogOpen] = useState<boolean>(false);
@@ -156,9 +156,9 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
   };
 
   // Handle submitting a cut
-  const handleCutSubmit = (cutData: Omit<PanelPiece, 'id'>) => {
-    const newId = requiredCuts.length === 0 ? 1 : Math.max(...requiredCuts.map(cut => cut.id)) + 1;
-    setRequiredCuts(cuts => [...cuts, { ...cutData, id: newId }]);
+  const handlePieceSubmit = (pieceData: Omit<PanelPiece, 'id'>) => {
+    const newId = "1";
+    setRequiredPieces(pieces => [...pieces, { ...pieceData, id: newId }]);
     setAddPanelCutDialogOpen(false);
   };
 
@@ -174,32 +174,32 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
   // Handle generating the cutting plan
   const generateCuttingPlan = () => {
     const selectedPanelStocks = selectedStockItems.map(item => item.stock);
-    const plannedCuts = requiredCuts.filter(cut => cut.quantity > 0);
+    const plannedPieces = requiredPieces.filter(piece => piece.quantity > 0);
     
     if (selectedPanelStocks.length === 0) {
       setError('Please select at least one panel stock');
       return;
     }
     
-    if (plannedCuts.length === 0) {
-      setError('Please add at least one cut with quantity greater than 0');
+    if (plannedPieces.length === 0) {
+      setError('Please add at least one piece with quantity greater than 0');
       return;
     }
     
-    // Expand cuts based on quantity
-    const expandedCuts: PanelPiece[] = [];
-    plannedCuts.forEach(cut => {
-      for (let i = 0; i < cut.quantity; i++) {
-        expandedCuts.push({
-          ...cut,
-          id: cut.id * 1000 + i, // Create unique numeric IDs for each instance
+    // Expand pieces based on quantity
+    const expandedPieces: PanelPiece[] = [];
+    plannedPieces.forEach(piece => {
+      for (let i = 0; i < piece.quantity; i++) {
+        expandedPieces.push({
+          ...piece,
+          id: "1",
           quantity: 1
         });
       }
     });
     
-    // Sort cuts by area (largest first) for better packing
-    expandedCuts.sort((a, b) => (b.length * b.width) - (a.length * a.width));
+    // Sort pieces by area (largest first) for better packing
+    expandedPieces.sort((a, b) => (b.length * b.width) - (a.length * a.width));
     
     // Initialize our cutting plan
     const layouts: PanelCuttingPlanLayout[] = [];
@@ -213,7 +213,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
     }));
     
     // Calculate total cut area
-    expandedCuts.forEach(cut => {
+    expandedPieces.forEach(cut => {
       totalCutArea += cut.length * cut.width;
     });
     
@@ -254,9 +254,9 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       };
       
       // Try to place each cut
-      for (const cut of expandedCuts) {
-        // Skip cuts that have already been placed
-        if (layouts.some(l => l.placements.some(p => p.cutId === cut.id))) {
+      for (const cut of expandedPieces) {
+        // Skip pieces that have already been placed
+        if (layouts.some(l => l.placements.some(p => p.pieceId === cut.id))) {
           continue;
         }
         
@@ -278,7 +278,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
               });
               
               layout.placements.push({
-                cutId: cut.id,
+                pieceId: cut.id,
                 x,
                 y,
                 rotated: false
@@ -304,7 +304,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                 });
                 
                 layout.placements.push({
-                  cutId: cut.id,
+                  pieceId: cut.id,
                   x,
                   y,
                   rotated: true
@@ -320,7 +320,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       // Calculate waste percentage for this layout
       let usedArea = 0;
       layout.placements.forEach(placement => {
-        const cut = expandedCuts.find(c => c.id === placement.cutId);
+        const cut = expandedPieces.find(c => c.id === placement.pieceId);
         if (cut) {
           usedArea += cut.length * cut.width;
         }
@@ -339,7 +339,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
     let totalUsedArea = 0;
     layouts.forEach(layout => {
       layout.placements.forEach(placement => {
-        const cut = expandedCuts.find(c => c.id === placement.cutId);
+        const cut = expandedPieces.find(c => c.id === placement.pieceId);
         if (cut) {
           totalUsedArea += cut.length * cut.width;
         }
@@ -355,7 +355,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       createdDate: new Date(),
       updatedDate: new Date(),
       selectedStock: selectedStockWithMeta,
-      requiredCuts: plannedCuts,
+      requiredPieces: plannedPieces,
       layouts,
       wastagePercentage,
       notes: notes || ''
@@ -486,7 +486,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
           
           <div style={{ height: 300, width: '100%' }}>
             <DataGrid
-              rows={requiredCuts}
+              rows={requiredPieces}
               columns={[
                 { field: 'name', headerName: 'Name', width: 120 },
                 { field: 'quantity', headerName: 'Qty', width: 80, type: 'number' },
@@ -530,7 +530,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                       icon={<DeleteIcon />}
                       label="Delete"
                       onClick={() => {
-                        setRequiredCuts(cuts => cuts.filter(cut => cut.id !== params.id));
+                        setRequiredPieces(pieces => pieces.filter(cut => cut.id !== params.id));
                       }}
                     />
                   ]
@@ -561,7 +561,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
               variant="contained" 
               color="primary" 
               fullWidth
-              disabled={selectedStockItems.length === 0 || requiredCuts.length === 0}
+              disabled={selectedStockItems.length === 0 || requiredPieces.length === 0}
               onClick={generateCuttingPlan}
             >
               Generate Cutting Plan
@@ -574,9 +574,9 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       <AddPanelPieceDialog
         open={addPanelCutDialogOpen}
         onClose={handleCutDialogClose}
-        onAdd={handleCutSubmit}
+        onAdd={handlePieceSubmit}
         unit={useMetric ? 'mm' : 'in'}
-        nextId={requiredCuts.length === 0 ? 1 : Math.max(...requiredCuts.map(cut => cut.id)) + 1}
+        nextId={"1"}
       />
 
       {/* Add Panel Dialog */}
@@ -626,10 +626,15 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
             
             if (!stockItem) return null;
             
-            // Find the cuts that are placed in this layout
-            const layoutCuts = generatedPlan.requiredCuts.filter(cut => 
-              layout.placements.some(placement => placement.cutId === cut.id)
-            );
+            // Find the pieces that are placed in this layout
+            console.log('pieces internal:', generatedPlan.requiredPieces);
+            console.log('layout.placements:', layout.placements);
+            console.log('generatedPlan:', generatedPlan);
+            const layoutPieces = generatedPlan.requiredPieces.filter(piece => {
+              const isPieceInLayout = layout.placements.some(placement => placement.pieceId === piece.id);
+              console.log(`Piece ID ${piece.id} is in layout: ${isPieceInLayout}`);
+              return isPieceInLayout;
+            });
             
             return (
               <Box key={layout.stockId} sx={{ mt: 3, mb: 5, border: '1px solid #ccc', padding: 2 }}>
@@ -642,7 +647,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                 <Box sx={{ mt: 2, overflow: 'auto' }}>
                   <PanelCuttingVisualizer 
                     stock={stockItem}
-                    cuts={layoutCuts}
+                    pieces={layoutPieces}
                     layout={layout}
                     unit={useMetric ? 'mm' : 'in'}
                   />
@@ -651,7 +656,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
             );
           })}
           
-          {/* Display any unplaced cuts if we have them */}
+          {/* Display any unplaced pieces if we have them */}
           {generatedPlan.layouts.length === 0 && (
             <Typography variant="body1" color="error">
               No layouts could be generated. Please adjust your stock or cut requirements.

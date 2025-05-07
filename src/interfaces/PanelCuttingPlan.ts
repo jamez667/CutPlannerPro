@@ -7,7 +7,7 @@ export interface PanelCuttingPlanStockItem {
 }
 
 export interface CutPlacement {
-  cutId: number;
+  pieceId: string;
   x: number;
   y: number;
   rotated: boolean;
@@ -25,7 +25,7 @@ export interface PanelCuttingPlan {
   createdDate: Date;
   updatedDate: Date;
   selectedStock: PanelCuttingPlanStockItem[];
-  requiredCuts: PanelPiece[];
+  requiredPieces: PanelPiece[];
   layouts: PanelCuttingPlanLayout[];
   wastagePercentage: number;
   notes: string;
