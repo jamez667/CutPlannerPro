@@ -105,11 +105,11 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
       console.log('Dynamic scale factor:', newScaleFactor);
       
       // Apply the scale factor to canvas dimensions
-      const maxWidth = Math.min(stock.length * newScaleFactor + (PADDING * 2), 5000); // Cap at 5000px
-      const maxHeight = Math.min(stock.width * newScaleFactor + (PADDING * 2), 5000);
+      const maxLength = Math.min(stock.length * newScaleFactor + (PADDING * 2), 5000); // Cap at 5000px
+      const maxWidth = Math.min(stock.width * newScaleFactor + (PADDING * 2), 5000);
       
-      canvas.width = maxWidth;
-      canvas.height = maxHeight;
+      canvas.width = maxLength;
+      canvas.height = maxWidth;
       
       const ctx = canvas.getContext('2d');
       if (!ctx) {
@@ -182,9 +182,9 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           const scaledWidth = width * newScaleFactor;
           const scaledLength = length * newScaleFactor;
           
-          console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledWidth}x${scaledLength}`);
+          console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledLength}x${scaledWidth}`);
           
-          ctx.fillRect(x, y, scaledWidth, scaledLength);
+          ctx.fillRect(x, y, scaledLength, scaledWidth);
           
           // Draw grain direction lines on the piece
           if (piece.grainDirection !== 'N/A') {
@@ -194,19 +194,25 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
             
             const grainSpacing = 10; // Adjust for desired line density
             
-            const isHorizontalGrain = piece.grainDirection === 'Lengthwise';
+            // Determine the correct grain direction based on the piece's orientation and rotation
+            let isHorizontalGrain = piece.grainDirection === 'Lengthwise';
+            
+            // If the piece is rotated, we need to invert the grain direction
+            if (placement.rotated) {
+              isHorizontalGrain = !isHorizontalGrain;
+            }
             
             if (isHorizontalGrain) {
-              // Draw horizontal lines for grain
+              // Draw horizontal lines for grain (along the piece length)
               for (let grainY = y; grainY <= y + scaledLength; grainY += grainSpacing) {
                 ctx.moveTo(x, grainY);
-                ctx.lineTo(x + scaledWidth, grainY);
+                ctx.lineTo(x + scaledLength, grainY);
               }
             } else {
-              // Draw vertical lines for grain
-              for (let grainX = x; grainX <= x + scaledWidth; grainX += grainSpacing) {
+              // Draw vertical lines for grain (along the piece width)
+              for (let grainX = x; grainX <= x + scaledLength; grainX += grainSpacing) {
                 ctx.moveTo(grainX, y);
-                ctx.lineTo(grainX, y + scaledLength);
+                ctx.lineTo(grainX, y + scaledWidth);
               }
             }
             
@@ -215,7 +221,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           
           ctx.strokeStyle = '#000000';
           ctx.lineWidth = 1;
-          ctx.strokeRect(x, y, scaledWidth, scaledLength);
+          ctx.strokeRect(x, y, scaledLength, scaledWidth);
         });
         
         // Draw labels separately to avoid cascading errors
@@ -261,7 +267,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         
         // Now try to draw the actual kerf lines with extremely visible styling
         ctx.strokeStyle = '#FF0000';
-        ctx.lineWidth = 6;  // Very thick line
+        ctx.lineWidth = 2;  // Very thick line
         ctx.setLineDash([10, 5]); // Very obvious dash pattern
         
         // Generate all possible piece positions or use defaults if none found
@@ -270,7 +276,6 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         
         // Find cut positions from placements
         layout.placements.forEach(placement => {
-          console.log('Processing placement:', placement);
           const piece = pieces.find(c => c.id === placement.pieceId);
           if (!piece) {
             return;
@@ -320,29 +325,6 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           ctx.fillText(`${formatDimension(x, 'length')}`, textX, textY);
           
           verticalLinesDrawn++;
-        });
-        
-        // Another backup pass with a completely different style
-        ctx.strokeStyle = '#0000FF';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([2, 2]);
-        
-        // Draw horizontal cuts again with backup style
-        allHorizontalCuts.forEach(y => {
-          const yCoord = PADDING + y * newScaleFactor + 2; // Offset slightly for visibility
-          ctx.beginPath();
-          ctx.moveTo(PADDING, yCoord);
-          ctx.lineTo(PADDING + stock.width * newScaleFactor, yCoord);
-          ctx.stroke();
-        });
-        
-        // Draw vertical cuts again with backup style
-        allVerticalCuts.forEach(x => {
-          const xCoord = PADDING + x * newScaleFactor + 2; // Offset slightly for visibility
-          ctx.beginPath();
-          ctx.moveTo(xCoord, PADDING);
-          ctx.lineTo(xCoord, PADDING + stock.length * newScaleFactor);
-          ctx.stroke();
         });
         
         // Reset line dash

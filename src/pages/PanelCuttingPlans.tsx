@@ -253,16 +253,16 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       // Function to check if a position is available for a rectangle
       const isPositionAvailable = (x: number, y: number, length: number, width: number): boolean => {
         // Check if the rectangle would go outside the stock boundaries
-        if (x < 0 || y < 0 || x + length > stock.length || y + width > stock.width) {
+        if (x < 0 || y < 0 || x + width > stock.width || y + length > stock.length) {
           return false;
         }
         
         // Check if the rectangle overlaps with any placed rectangle
         for (const placed of placedRectangles) {
           // Fixed overlap check: two rectangles overlap unless one is completely to the left, right, above, or below the other
-          if (!(x >= placed.x + placed.width || // New rectangle is completely to the right
+          if (!(x >= placed.x + placed.length || // New rectangle is completely to the right
                 placed.x >= x + length ||       // New rectangle is completely to the left
-                y >= placed.y + placed.length || // New rectangle is completely below
+                y >= placed.y + placed.width || // New rectangle is completely below
                 placed.y >= y + width)) {      // New rectangle is completely above
             return false; // Overlap detected
           }
@@ -286,28 +286,49 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
         // 2. If grain direction is N/A, it can always be rotated
         // 3. If piece is lengthwise and stock is widthwise, they can be rotated to align the grains
         // 4. If piece is widthwise and stock is lengthwise, they can be rotated to align the grains
-        // const canRotate = 
-        //   isSquare || 
-        //   piece.grainDirection === 'N/A' || 
-        //   (piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
-        //   (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise');
+        const canRotate = 
+          isSquare || 
+          piece.grainDirection === 'N/A' || 
+          (piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
+          (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise');
         
         // For grain-aligned pieces, prioritize placement in rotated or non-rotated orientation
         // based on how the grain directions align (but don't bother rotating square pieces)
-        // const shouldTryRotatedFirst = 
-        //   !isSquare && (
-        //     (piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
-        //     (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise')
-        //   );
+        const shouldTryRotatedFirst = 
+          !isSquare && (
+            (piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
+            (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise')
+          );
         
         // Try to find a spot for this piece
         let placed = false;
         
+        // if (shouldTryRotatedFirst && canRotate) {
+        //   // Try placing with rotation first
+        //   for (let x = 0; x <= stock.width - piece.length && !placed; x += 1) {
+        //     for (let y = 0; y <= stock.length - piece.width && !placed; y += 1) {
+        //       if (isPositionAvailable(x, y, piece.length, piece.width)) {
+        //         placedRectangles.push({
+        //           x, y, length: piece.width, width: piece.length
+        //         });
+                
+        //         layout.placements.push({
+        //           pieceId: piece.id,
+        //           x, y,
+        //           rotated: true // Rotated
+        //         });
+                
+        //         placed = true;
+        //       }
+        //     }
+        //   }
+        // }
+
         // Try placing without rotation (either as first attempt or as fallback)
         if (!placed) {
-          for (let x = 0; x <= stock.width - piece.width && !placed; x += 1) {
-            for (let y = 0; y <= stock.length - piece.length && !placed; y += 1) {
-              if (isPositionAvailable(x, y, piece.width, piece.length)) {
+          for (let x = 0; x <= stock.length - piece.length && !placed; x += 1) {
+            for (let y = 0; y <= stock.width - piece.width && !placed; y += 1) {
+              if (isPositionAvailable(x, y, piece.length, piece.width)) {
                 placedRectangles.push({
                   x, y, length: piece.length, width: piece.width
                 });
@@ -323,6 +344,8 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
             }
           }
         }
+
+
       }
       
       // Calculate waste percentage for this layout
@@ -347,9 +370,9 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
     let totalUsedArea = 0;
     layouts.forEach(layout => {
       layout.placements.forEach(placement => {
-        const cut = expandedPieces.find(c => c.id === placement.pieceId);
-        if (cut) {
-          totalUsedArea += cut.length * cut.width;
+        const expandedPiece = expandedPieces.find(c => c.id === placement.pieceId);
+        if (expandedPiece) {
+          totalUsedArea += expandedPiece.length * expandedPiece.width;
         }
       });
     });
@@ -486,7 +509,10 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
               <TableHead>
                 <TableRow>
                   <TableCell>Description</TableCell>
-                  <TableCell>Dimensions</TableCell>
+                  <TableCell>Length</TableCell>
+                  <TableCell>Width</TableCell>
+                  <TableCell>Thickness</TableCell>
+                  <TableCell>Grain Direction</TableCell>
                   <TableCell>Quantity</TableCell>
                   <TableCell>Priority</TableCell>
                   <TableCell>Actions</TableCell>
@@ -497,7 +523,10 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                   selectedStockItems.map((stock) => (
                     <TableRow key={stock.stock.id}>
                       <TableCell>{stock.stock.description}</TableCell>
-                      <TableCell>{formatStockDimension(stock.stock.length)} x {formatStockDimension(stock.stock.width)} {useMetric ? 'mm' : 'in'}</TableCell>
+                      <TableCell>{formatStockDimension(stock.stock.length)}</TableCell>
+                      <TableCell>{formatStockDimension(stock.stock.width)}</TableCell>
+                      <TableCell>{formatStockDimension(stock.stock.thickness)}</TableCell>
+                      <TableCell>{stock.stock.grainDirection}</TableCell>
                       <TableCell>{stock.stock.quantity}</TableCell>
                       <TableCell>{stock.priority}</TableCell>
                       <TableCell>
