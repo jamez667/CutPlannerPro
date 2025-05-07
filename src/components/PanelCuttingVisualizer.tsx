@@ -112,105 +112,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         ctx.strokeRect(PADDING, PADDING, stock.length * newScaleFactor, stock.width * newScaleFactor);
       });
       
-      // Draw each piece
-      layout.placements.forEach((placement, index) => {
-        const piece = pieces.find(c => c.id === placement.pieceId);
-        if (!piece) {
-          return;
-        }
-
-        drawSafely(ctx => {
-          const colorIndex = index % colors.length;
-          ctx.fillStyle = colors[colorIndex];
-          
-          // Consider rotation when drawing the rectangle
-          const width = placement.rotated ? piece.length : piece.width;
-          const length = placement.rotated ? piece.width : piece.length;
-          
-          const x = PADDING + placement.x * newScaleFactor;
-          const y = PADDING + placement.y * newScaleFactor;
-          const scaledWidth = width * newScaleFactor;
-          const scaledLength = length * newScaleFactor;
-          
-          console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledLength}x${scaledWidth}`);
-          
-          ctx.fillRect(x, y, scaledLength, scaledWidth);
-          
-          // Draw grain direction lines on the piece
-          if (piece.grainDirection !== 'N/A') {
-            ctx.strokeStyle = 'rgba(0,0,0,0.1)'; // Even fainter grey
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            
-            const grainSpacing = 10; // Adjust for desired line density
-            
-            // Determine the correct grain direction based on the piece's orientation and rotation
-            let isHorizontalGrain = piece.grainDirection === 'Lengthwise';
-            
-            // If the piece is rotated, we need to invert the grain direction
-            if (placement.rotated) {
-              isHorizontalGrain = !isHorizontalGrain;
-            }
-            
-            if (isHorizontalGrain) {
-              // Draw horizontal lines for grain (along the width of the drawn rectangle)
-              for (let grainY = y; grainY <= y + scaledWidth; grainY += grainSpacing) {
-                ctx.moveTo(x, grainY);
-                ctx.lineTo(x + scaledLength, grainY);
-              }
-            } else {
-              // Draw vertical lines for grain (along the length of the drawn rectangle)
-              for (let grainX = x; grainX <= x + scaledLength; grainX += grainSpacing) {
-                ctx.moveTo(grainX, y);
-                ctx.lineTo(grainX, y + scaledWidth);
-              }
-            }
-            
-            ctx.stroke();
-          }
-          
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(x, y, scaledLength, scaledWidth);
-        });
-        
-        // Draw labels separately to avoid cascading errors
-        drawSafely(ctx => {
-          // Draw label with properly converted dimensions
-          ctx.fillStyle = '#000000';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          
-          // Consider rotation for label placement
-          const width = placement.rotated ? piece.length : piece.width;
-          const length = placement.rotated ? piece.width : piece.length;
-          
-          const labelX = PADDING + placement.x * newScaleFactor + (length * newScaleFactor / 2);
-          const labelY = PADDING + placement.y * newScaleFactor + (width * newScaleFactor / 2);
-          
-          // Verify position is within canvas bounds
-          if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
-            // Show dimensions considering rotation
-            ctx.fillText(
-              `${formatDimensionValue(length, 'length', unit, true)}x${formatDimensionValue(width, 'width', unit, true)} ${placement.rotated ? ' (R)' : ''}`,
-              labelX,
-              labelY
-            );
-            
-            // Add piece name if available
-            if (piece.name) {
-              ctx.font = '10px Arial';
-              ctx.fillText(
-                piece.name,
-                labelX,
-                labelY + 15
-              );
-            }
-          }
-        });
-      });
-      
-      // Draw kerf lines
+      // Draw kerf lines BEFORE drawing pieces so they appear behind
       drawSafely(ctx => {
         // Clear any existing line settings that might interfere
         ctx.setLineDash([]); 
@@ -308,6 +210,104 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         
         // Log number of cut lines drawn for debugging
         console.log(`Drew ${horizontalLinesDrawn} horizontal cuts and ${verticalLinesDrawn} vertical cuts`);
+      });
+      
+      // Draw each piece AFTER kerf lines so they appear on top
+      layout.placements.forEach((placement, index) => {
+        const piece = pieces.find(c => c.id === placement.pieceId);
+        if (!piece) {
+          return;
+        }
+
+        drawSafely(ctx => {
+          const colorIndex = index % colors.length;
+          ctx.fillStyle = colors[colorIndex];
+          
+          // Consider rotation when drawing the rectangle
+          const width = placement.rotated ? piece.length : piece.width;
+          const length = placement.rotated ? piece.width : piece.length;
+          
+          const x = PADDING + placement.x * newScaleFactor;
+          const y = PADDING + placement.y * newScaleFactor;
+          const scaledWidth = width * newScaleFactor;
+          const scaledLength = length * newScaleFactor;
+          
+          console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledLength}x${scaledWidth}`);
+          
+          ctx.fillRect(x, y, scaledLength, scaledWidth);
+          
+          // Draw grain direction lines on the piece
+          if (piece.grainDirection !== 'N/A') {
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)'; // Even fainter grey
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            const grainSpacing = 10; // Adjust for desired line density
+            
+            // Determine the correct grain direction based on the piece's orientation and rotation
+            let isHorizontalGrain = piece.grainDirection === 'Lengthwise';
+            
+            // If the piece is rotated, we need to invert the grain direction
+            if (placement.rotated) {
+              isHorizontalGrain = !isHorizontalGrain;
+            }
+            
+            if (isHorizontalGrain) {
+              // Draw horizontal lines for grain (along the width of the drawn rectangle)
+              for (let grainY = y; grainY <= y + scaledWidth; grainY += grainSpacing) {
+                ctx.moveTo(x, grainY);
+                ctx.lineTo(x + scaledLength, grainY);
+              }
+            } else {
+              // Draw vertical lines for grain (along the length of the drawn rectangle)
+              for (let grainX = x; grainX <= x + scaledLength; grainX += grainSpacing) {
+                ctx.moveTo(grainX, y);
+                ctx.lineTo(grainX, y + scaledWidth);
+              }
+            }
+            
+            ctx.stroke();
+          }
+          
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x, y, scaledLength, scaledWidth);
+        });
+        
+        // Draw labels separately to avoid cascading errors
+        drawSafely(ctx => {
+          // Draw label with properly converted dimensions
+          ctx.fillStyle = '#000000';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          
+          // Consider rotation for label placement
+          const width = placement.rotated ? piece.length : piece.width;
+          const length = placement.rotated ? piece.width : piece.length;
+          
+          const labelX = PADDING + placement.x * newScaleFactor + (length * newScaleFactor / 2);
+          const labelY = PADDING + placement.y * newScaleFactor + (width * newScaleFactor / 2);
+          
+          // Verify position is within canvas bounds
+          if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
+            // Show dimensions considering rotation
+            ctx.fillText(
+              `${formatDimensionValue(length, 'length', unit, true)}x${formatDimensionValue(width, 'width', unit, true)} ${placement.rotated ? ' (R)' : ''}`,
+              labelX,
+              labelY
+            );
+            
+            // Add piece name if available
+            if (piece.name) {
+              ctx.font = '10px Arial';
+              ctx.fillText(
+                piece.name,
+                labelX,
+                labelY + 15
+              );
+            }
+          }
+        });
       });
       
       // Draw waste percentage if available
