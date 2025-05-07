@@ -191,8 +191,8 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       }
     });
     
-    // Sort pieces by area (largest first) for better packing
-    expandedPieces.sort((a, b) => (b.length * b.width) - (a.length * a.width));
+    // Sort pieces by length (longest first) for top-to-bottom placement
+    expandedPieces.sort((a, b) => b.length - a.length);
     
     // Initialize our cutting plan
     const layouts: PanelCuttingPlanLayout[] = [];
@@ -210,14 +210,13 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       totalCutArea += cut.length * cut.width;
     });
     
-    // Simple first-fit algorithm
+    // Top-to-bottom placement algorithm
     // For each stock sheet
     selectedStockWithMeta.forEach(stockWithMeta => {
       const stock = stockWithMeta.stock;
       totalStockArea += stock.length * stock.width;
       
-      // Instead of creating a massive grid, use a more efficient data structure
-      // to track occupied spaces (just store the placed rectangles)
+      // Track placed pieces
       const placedRectangles: {x: number, y: number, length: number, width: number}[] = [];
       
       // Create a layout for this stock
@@ -228,7 +227,6 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       };
       
       // Function to check if a position is available for a rectangle
-      // Modified to consider kerf width
       const isPositionAvailable = (x: number, y: number, length: number, width: number): boolean => {
         // Check if the rectangle would go outside the stock boundaries
         if (x < 0 || y < 0 || x + length > stock.length || y + width > stock.width) {
@@ -238,11 +236,10 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
         // Check if the rectangle overlaps with any placed rectangle (including kerf spacing)
         for (const placed of placedRectangles) {
           // Add kerf size to the overlap check to ensure space for the saw blade
-          // Two rectangles overlap if their edges are closer than the kerf width
-          if (!(x >= placed.x + placed.length + kerfSize || // New rectangle is to the right with kerf space
-                placed.x >= x + length + kerfSize ||       // New rectangle is to the left with kerf space
-                y >= placed.y + placed.width + kerfSize || // New rectangle is below with kerf space
-                placed.y >= y + width + kerfSize)) {      // New rectangle is above with kerf space
+          if (!(x >= placed.x + placed.length + kerfSize || 
+                placed.x >= x + length + kerfSize ||
+                y >= placed.y + placed.width + kerfSize || 
+                placed.y >= y + width + kerfSize)) {
             return false; // Overlap detected or insufficient kerf space
           }
         }
@@ -250,7 +247,14 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
         return true;
       };
       
-      // Try to place each cut
+      // Shelf-based placement approach - place pieces top-to-bottom
+      // 1. Keep track of "shelves" (horizontal strips)
+      // 2. For each piece, find a shelf where it fits or create a new shelf
+      
+      // Track current shelf height
+      let currentShelfY = 0;
+      const MAX_SHELF_HEIGHT = stock.width;
+      
       for (const piece of expandedPieces) {
         // Skip pieces that have already been placed
         if (layouts.some(l => l.placements.some(p => p.pieceId === piece.id))) {
@@ -260,88 +264,172 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
         // Check if piece is square - if so, no rotation is needed
         const isSquare = Math.abs(piece.length - piece.width) < 0.001;
         
-        // Determine when a piece can be rotated:
-        // 1. If piece is square, rotation doesn't matter (but we'll skip rotation for efficiency)
-        // 2. If grain direction is N/A, it can always be rotated
-        // 3. If piece is lengthwise and stock is widthwise, they can be rotated to align the grains
-        // 4. If piece is widthwise and stock is lengthwise, they can be rotated to align the grains
+        // Determine whether piece MUST be rotated based on grain direction constraints
+        const mustRotateForGrain = 
+          piece.grainDirection !== 'N/A' && 
+          stock.grainDirection !== 'N/A' &&
+          ((piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
+           (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise'));
+        
+        // Determine whether piece CAN be rotated
         const canRotate = 
           isSquare || 
           piece.grainDirection === 'N/A' || 
-          (piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
-          (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise');
+          stock.grainDirection === 'N/A' ||
+          // Allow rotation if grain directions are perpendicular (actually MUST rotate in this case)
+          mustRotateForGrain;
+          
+        // Logging for debugging
+        console.log(`Piece ${piece.id} - ${piece.name}: grain=${piece.grainDirection}, stock grain=${stock.grainDirection}`);
+        console.log(`  mustRotateForGrain=${mustRotateForGrain}, canRotate=${canRotate}`);
         
-        // For grain-aligned pieces, prioritize placement in rotated or non-rotated orientation
-        // based on how the grain directions align (but don't bother rotating square pieces)
-        const shouldTryRotatedFirst = 
-          !isSquare && (
-            (piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
-            (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise')
-          );
-        
-        // Try to find a spot for this piece
+        // Special handling for pieces that MUST be rotated due to grain constraints
+        // Try to place with enforced rotation first if grain requires it
         let placed = false;
 
-        // If not placed without rotation, try with rotation if allowed
-        if (!placed && shouldTryRotatedFirst) {
-          for (let x = 0; x <= stock.length - piece.width && !placed; x += 1) {
-            for (let y = 0; y <= stock.width - piece.length && !placed; y += 1) {
-              if (isPositionAvailable(x, y, piece.width, piece.length)) {
-                placedRectangles.push({
-                  x, y, length: piece.width, width: piece.length
-                });
-                
-                layout.placements.push({
-                  pieceId: piece.id,
-                  x, y,
-                  rotated: true // Rotated
-                });
-                
-                placed = true;
-              }
+        // If piece MUST be rotated for grain direction, try placing it rotated first
+        if (mustRotateForGrain) {
+          let x = 0;
+          while (x <= stock.length - piece.width && !placed) {
+            if (currentShelfY + piece.length <= MAX_SHELF_HEIGHT && 
+                isPositionAvailable(x, currentShelfY, piece.width, piece.length)) {
+              // Place the piece rotated
+              placedRectangles.push({
+                x, y: currentShelfY, length: piece.width, width: piece.length
+              });
+              
+              layout.placements.push({
+                pieceId: piece.id,
+                x, y: currentShelfY,
+                rotated: true
+              });
+              
+              placed = true;
+              console.log(`  Piece ${piece.id} ROTATED due to grain direction constraints`);
+              x += piece.width + kerfSize; // Move position for next piece
+            } else {
+              x++; // Try next position
             }
           }
         }
         
-        // Try placing without rotation (either as first attempt or as fallback)
-        if (!placed) {
-          // Iterate with kerf-sized steps for more efficient packing
-          for (let x = 0; x <= stock.length - piece.length && !placed; x += 1) {
-            for (let y = 0; y <= stock.width - piece.width && !placed; y += 1) {
-              if (isPositionAvailable(x, y, piece.length, piece.width)) {
-                placedRectangles.push({
-                  x, y, length: piece.length, width: piece.width
-                });
-                
-                layout.placements.push({
-                  pieceId: piece.id,
-                  x, y,
-                  rotated: false // Not rotated
-                });
-                
-                placed = true;
-              }
+        // Try to place without rotation if not already placed and rotation is not mandatory
+        if (!placed && !mustRotateForGrain) {
+          let x = 0;
+          // Try to find space along the current shelf
+          while (x <= stock.length - piece.length && !placed) {
+            if (currentShelfY + piece.width <= MAX_SHELF_HEIGHT && 
+                isPositionAvailable(x, currentShelfY, piece.length, piece.width)) {
+              // Place the piece here
+              placedRectangles.push({
+                x, y: currentShelfY, length: piece.length, width: piece.width
+              });
+              
+              layout.placements.push({
+                pieceId: piece.id,
+                x, y: currentShelfY,
+                rotated: false
+              });
+              
+              placed = true;
+              x += piece.length + kerfSize; // Move position for next piece
+            } else {
+              x++; // Try next position
             }
           }
         }
-
-        // If not placed without rotation, try with rotation if allowed
+        
+        // If we couldn't place without rotation, try with rotation if allowed
         if (!placed && canRotate) {
-          for (let x = 0; x <= stock.length - piece.width && !placed; x += 1) {
-            for (let y = 0; y <= stock.width - piece.length && !placed; y += 1) {
-              if (isPositionAvailable(x, y, piece.width, piece.length)) {
-                placedRectangles.push({
-                  x, y, length: piece.width, width: piece.length
-                });
-                
-                layout.placements.push({
-                  pieceId: piece.id,
-                  x, y,
-                  rotated: true // Rotated
-                });
-                
-                placed = true;
-              }
+          let x = 0;
+          while (x <= stock.length - piece.width && !placed) {
+            if (currentShelfY + piece.length <= MAX_SHELF_HEIGHT && 
+                isPositionAvailable(x, currentShelfY, piece.width, piece.length)) {
+              // Place the piece rotated
+              placedRectangles.push({
+                x, y: currentShelfY, length: piece.width, width: piece.width
+              });
+              
+              layout.placements.push({
+                pieceId: piece.id,
+                x, y: currentShelfY,
+                rotated: true
+              });
+              
+              placed = true;
+              x += piece.width + kerfSize; // Move position for next piece
+            } else {
+              x++; // Try next position
+            }
+          }
+        }
+        
+        // If still not placed, start a new shelf
+        if (!placed) {
+          // Find the tallest piece in the current shelf to determine next shelf Y position
+          let maxHeight = 0;
+          for (const rect of placedRectangles) {
+            if (rect.y === currentShelfY && rect.width > maxHeight) {
+              maxHeight = rect.width;
+            }
+          }
+          
+          // If no pieces in current shelf, use a default height
+          if (maxHeight === 0) maxHeight = Math.min(piece.width, MAX_SHELF_HEIGHT / 4);
+          
+          // Move to next shelf
+          currentShelfY += maxHeight + kerfSize;
+          
+          // Try again on new shelf if there's room
+          if (currentShelfY + piece.width <= MAX_SHELF_HEIGHT) {
+            let x = 0;
+            
+            // First try to place according to grain direction constraints
+            if (mustRotateForGrain && currentShelfY + piece.length <= MAX_SHELF_HEIGHT && 
+                isPositionAvailable(x, currentShelfY, piece.width, piece.length)) {
+              // Place the piece rotated since grain direction requires it
+              placedRectangles.push({
+                x, y: currentShelfY, length: piece.width, width: piece.length
+              });
+              
+              layout.placements.push({
+                pieceId: piece.id,
+                x, y: currentShelfY,
+                rotated: true
+              });
+              
+              placed = true;
+              console.log(`  Piece ${piece.id} ROTATED on new shelf due to grain constraints`);
+            }
+            // If not mandatory to rotate by grain, try normal orientation first
+            else if (!mustRotateForGrain && isPositionAvailable(x, currentShelfY, piece.length, piece.width)) {
+              // Place the piece on the new shelf
+              placedRectangles.push({
+                x, y: currentShelfY, length: piece.length, width: piece.width
+              });
+              
+              layout.placements.push({
+                pieceId: piece.id,
+                x, y: currentShelfY,
+                rotated: false
+              });
+              
+              placed = true;
+            } 
+            // If not placed with normal orientation, try rotated if allowed
+            else if (canRotate && isPositionAvailable(x, currentShelfY, piece.width, piece.length)) {
+              placedRectangles.push({
+                x, y: currentShelfY, length: piece.width, width: piece.length
+              });
+              
+              layout.placements.push({
+                pieceId: piece.id,
+                x, y: currentShelfY,
+                rotated: true
+              });
+              
+              placed = true;
+              console.log(`  Piece ${piece.id} ROTATED on new shelf`);
             }
           }
         }
