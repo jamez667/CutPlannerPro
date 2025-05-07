@@ -29,6 +29,7 @@ import {
   TableHead,
   TableRow,
   SelectChangeEvent,
+  FormHelperText,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -66,6 +67,18 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
   ]);
   const [showVisualization, setShowVisualization] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [kerfSize, setKerfSize] = useState<number>(3); // Default kerf size in mm
+
+  // Common kerf sizes in mm
+  const commonKerfSizes = [
+    { value: 2.4, label: '2.4mm (3/32")' },
+    { value: 3.0, label: '3.0mm (1/8")' },
+    { value: 3.2, label: '3.2mm (1/8"+)' },
+    { value: 4.8, label: '4.8mm (3/16")' },
+    { value: 6.4, label: '6.4mm (1/4")' },
+    { value: 8.0, label: '8.0mm (5/16")' },
+    { value: 9.5, label: '9.5mm (3/8")' }
+  ];
 
   // Load panel stock from cookies on component mount
   useEffect(() => {
@@ -157,7 +170,10 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
 
   // Handle submitting a cut
   const handlePieceSubmit = (pieceData: Omit<PanelPiece, 'id'>) => {
-    const newId = "1";
+    // Generate a unique ID that's different for each piece
+    const newId = `piece-${Math.random().toString(36).substring(2, 9)}-${Date.now()}`;
+    
+    // Add the new piece to the existing pieces array
     setRequiredPieces(pieces => [...pieces, { ...pieceData, id: newId }]);
     setAddPanelCutDialogOpen(false);
   };
@@ -192,7 +208,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       for (let i = 0; i < piece.quantity; i++) {
         expandedPieces.push({
           ...piece,
-          id: "1",
+          id: `${piece.id}-${i}`,
           quantity: 1
         });
       }
@@ -254,31 +270,30 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       };
       
       // Try to place each cut
-      for (const cut of expandedPieces) {
+      for (const piece of expandedPieces) {
         // Skip pieces that have already been placed
-        if (layouts.some(l => l.placements.some(p => p.pieceId === cut.id))) {
+        if (layouts.some(l => l.placements.some(p => p.pieceId === piece.id))) {
           continue;
         }
         
-        // Try to find a spot for this cut
+        // Try to find a spot for this piece
         let placed = false;
         
         // Try placing without rotation first
-        // Use a more efficient scanning approach
-        for (let x = 0; x <= stock.length - cut.length && !placed; x += 1) {
-          for (let y = 0; y <= stock.width - cut.width && !placed; y += 1) {
-            // Try to place the cut at this position
-            if (isPositionAvailable(x, y, cut.length, cut.width)) {
+        for (let x = 0; x <= stock.length - piece.length && !placed; x += 1) {
+          for (let y = 0; y <= stock.width - piece.width && !placed; y += 1) {
+            if (isPositionAvailable(x, y, piece.length, piece.width)) {
               // Record the placement
               placedRectangles.push({
                 x, 
                 y, 
-                width: cut.length, 
-                height: cut.width
+                width: piece.length, 
+                height: piece.width
               });
               
+              // When placing each piece, ensure we're using pieceId consistently
               layout.placements.push({
-                pieceId: cut.id,
+                pieceId: piece.id,
                 x,
                 y,
                 rotated: false
@@ -289,22 +304,21 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
           }
         }
         
-        // If not placed, try with rotation if cut dimensions are different
-        if (!placed && cut.length !== cut.width) {
-          for (let x = 0; x <= stock.length - cut.width && !placed; x += 1) {
-            for (let y = 0; y <= stock.width - cut.length && !placed; y += 1) {
-              // Try to place the rotated cut at this position
-              if (isPositionAvailable(x, y, cut.width, cut.length)) {
+        // If not placed, try with rotation
+        if (!placed && piece.length !== piece.width) {
+          for (let x = 0; x <= stock.length - piece.width && !placed; x += 1) {
+            for (let y = 0; y <= stock.width - piece.length && !placed; y += 1) {
+              if (isPositionAvailable(x, y, piece.width, piece.length)) {
                 // Record the placement
                 placedRectangles.push({
                   x, 
                   y, 
-                  width: cut.width, 
-                  height: cut.length
+                  width: piece.width, 
+                  height: piece.length
                 });
                 
                 layout.placements.push({
-                  pieceId: cut.id,
+                  pieceId: piece.id,  // Make sure we're using the correct ID reference
                   x,
                   y,
                   rotated: true
@@ -356,9 +370,12 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       updatedDate: new Date(),
       selectedStock: selectedStockWithMeta,
       requiredPieces: plannedPieces,
+      // Store the expanded pieces to make them available for visualization
+      expandedPieces: expandedPieces,
       layouts,
       wastagePercentage,
-      notes: notes || ''
+      notes: notes || '',
+      kerfSize: kerfSize
     };
     
     setGeneratedPlan(cuttingPlan);
@@ -399,6 +416,50 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={2} sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>Panel Cutting Plans</Typography>
+        
+        {/* Kerf Size Input */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" gutterBottom>Kerf Size</Typography>
+          <FormControl sx={{ minWidth: 300 }}>
+            <InputLabel id="kerf-size-label">Saw Kerf Width</InputLabel>
+            <Select
+              labelId="kerf-size-label"
+              id="kerf-size-select"
+              value={kerfSize.toString()}
+              onChange={(e) => setKerfSize(Number(e.target.value))}
+              label="Saw Kerf Width"
+            >
+              {commonKerfSizes.map((option) => (
+                <MenuItem key={option.value} value={option.value.toString()}>
+                  {option.label}
+                </MenuItem>
+              ))}
+              <MenuItem divider />
+              <MenuItem value="custom">
+                Custom Size
+              </MenuItem>
+            </Select>
+            <FormHelperText>Width of the saw blade cut</FormHelperText>
+          </FormControl>
+          
+          {/* Show custom input if "Custom Size" is selected */}
+          {kerfSize.toString() === 'custom' && (
+            <TextField
+              label="Custom Kerf Size (mm)"
+              type="number"
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (!isNaN(value) && value > 0) {
+                  setKerfSize(value);
+                }
+              }}
+              sx={{ mt: 2, width: 300 }}
+              InputProps={{
+                inputProps: { min: 0.1, step: 0.1 }
+              }}
+            />
+          )}
+        </Box>
         
         {/* Stock Selection */}
         <Box sx={{ mb: 4 }}>
@@ -626,15 +687,10 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
             
             if (!stockItem) return null;
             
-            // Find the pieces that are placed in this layout
-            console.log('pieces internal:', generatedPlan.requiredPieces);
-            console.log('layout.placements:', layout.placements);
-            console.log('generatedPlan:', generatedPlan);
-            const layoutPieces = generatedPlan.requiredPieces.filter(piece => {
-              const isPieceInLayout = layout.placements.some(placement => placement.pieceId === piece.id);
-              console.log(`Piece ID ${piece.id} is in layout: ${isPieceInLayout}`);
-              return isPieceInLayout;
-            });
+            // Find the pieces that are placed in this layout - using generatedPlan.expandedPieces
+            const layoutPieces = generatedPlan.expandedPieces?.filter(
+              (p: PanelPiece) => layout.placements.some(placement => placement.pieceId === p.id)
+            ) || [];
             
             return (
               <Box key={layout.stockId} sx={{ mt: 3, mb: 5, border: '1px solid #ccc', padding: 2 }}>
@@ -650,6 +706,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                     pieces={layoutPieces}
                     layout={layout}
                     unit={useMetric ? 'mm' : 'in'}
+                    kerfSize={kerfSize}
                   />
                 </Box>
               </Box>

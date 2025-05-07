@@ -26,7 +26,9 @@ export interface PanelCuttingPlan {
   updatedDate: Date;
   selectedStock: PanelCuttingPlanStockItem[];
   requiredPieces: PanelPiece[];
+  expandedPieces?: PanelPiece[]; // Add this property to store the expanded pieces
   layouts: PanelCuttingPlanLayout[];
   wastagePercentage: number;
   notes: string;
+  kerfSize?: number; // Add kerf size to the plan
 }

@@ -10,6 +10,7 @@ interface PanelCuttingVisualizerProps {
   pieces: PanelPiece[];
   layout: PanelCuttingPlanLayout;
   unit: string;
+  kerfSize?: number; // Make kerfSize optional with a default value
 }
 
 const colors = [
@@ -17,7 +18,13 @@ const colors = [
   '#FFA07A', '#FFFACD', '#B0E0E6', '#F0E68C', '#E6E6FA'
 ];
 
-const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, pieces, layout, unit }) => {
+const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ 
+  stock, 
+  pieces, 
+  layout, 
+  unit, 
+  kerfSize = 3 // Default kerf size if not provided
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const PADDING = 30;
@@ -274,13 +281,13 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
           const length = placement.rotated ? piece.width : piece.length;
           
           // Add horizontal cuts at bottom edge of each piece
-          const yPos = placement.y + length;
+          const yPos = placement.y + length + (kerfSize / 2); // Add half kerf size
           if (yPos > 0 && yPos < stock.length) {
             allHorizontalCuts.add(Math.round(yPos));
           }
           
           // Add vertical cuts at right edge of each piece
-          const xPos = placement.x + width;
+          const xPos = placement.x + width + (kerfSize / 2); // Add half kerf size
           if (xPos > 0 && xPos < stock.width) {
             allVerticalCuts.add(Math.round(xPos));
           }
@@ -301,8 +308,17 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
         allVerticalCuts.forEach(x => {
           ctx.beginPath();
           ctx.moveTo(PADDING + x * newScaleFactor, PADDING);
-          ctx.lineTo(PADDING + x * newScaleFactor, PADDING + stock.length * newScaleFactor);
+          ctx.lineTo(PADDING + x * newScaleFactor, PADDING + stock.width * newScaleFactor);
           ctx.stroke();
+          
+          // Add text label above the line showing distance from left edge
+          ctx.fillStyle = '#000000';
+          ctx.font = '10px Arial';
+          ctx.textAlign = 'center';
+          const textX = PADDING + x * newScaleFactor;
+          const textY = PADDING - 5; // Position above the panel
+          ctx.fillText(`${formatDimension(x, 'length')}`, textX, textY);
+          
           verticalLinesDrawn++;
         });
         
@@ -351,7 +367,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
       console.error('Error in canvas rendering:', err);
       setError('Failed to render visualization');
     }
-  }, [stock, pieces, layout, unit]);
+  }, [stock, pieces, layout, unit, kerfSize]); // Add kerfSize to dependency array
 
   return (
     <div className="panel-cutting-visualizer">
@@ -360,15 +376,15 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
           {error}
         </div>
       )}
-      <div style={{ 
+      {/* <div style={{  
         marginBottom: '10px', 
         padding: '5px', 
         backgroundColor: '#f0f0f0', 
         borderRadius: '4px', 
         fontSize: '14px' 
       }}>
-        Scale: {scaleFactor.toFixed(2)}x | Panel: {stock?.width}×{stock?.length} {unit}
-      </div>
+        Scale: {scaleFactor.toFixed(2)}x | Panel: {stock?.width}×{stock?.length} {unit} | Kerf: {kerfSize}mm
+      </div>*/}
 
       <canvas 
         ref={canvasRef} 
