@@ -17,7 +17,7 @@ import {
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import { PanelStockFormData } from '../interfaces/PanelStockFormData';
 import { formatDimensionValue } from '../utils/formatters';
-import { convertFromMetric } from '../utils/unitConversion'; // Import conversion function
+import { convertFromMetric, convertToMetric } from '../utils/unitConversion'; // Import conversion function
 
 const filter = createFilterOptions<string>();
 
@@ -29,9 +29,9 @@ const getPresets = (units: string) => {
     thicknesses: [3, 6, 9, 12, 15, 16, 18, 19, 22, 25, 30, 32, 38]
   };
   const imperialPresets = {
-    lengths: [48, 60, 72, 96, 120],
-    widths: [24, 30, 48, 60],
-    thicknesses: [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 1, 1.25, 1.5]
+    lengths: [1219.2, 1524, 1828.8, 2438.4, 3048],
+    widths: [609.6, 762, 1219.2, 1524],
+    thicknesses: [3.175, 6.35, 9.525, 12.7, 15.875, 19.05, 25.4, 31.75, 38.1]
   };
   return units === 'in' ? imperialPresets : metricPresets;
 };
@@ -111,7 +111,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
         if (!isNaN(numberValue)) {
           // When selecting from presets, the values are already in the correct units
           // No need for additional conversion
-          setFormData(prev => ({ ...prev, [dimension]: numberValue }));
+          setFormData(prev => ({ ...prev, [dimension]: convertToMetric(numberValue, units) }));
         }
       } else {
         setFormData(prev => ({ ...prev, [dimension]: '' as unknown as number }));
@@ -138,13 +138,13 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
-                  {formatDimensionValue(option, 'length', units, false)}
+                  {formatDimensionValue(option, 'length', units)}
                 </li>
               )}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label={`Length (${units === 'mm' ? 'mm' : 'in'})`}
+                  label={`Length (${units})`}
                   type="number"
                   required
                 />
@@ -161,13 +161,13 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
-                  {formatDimensionValue(option, 'width', units, false)}
+                  {formatDimensionValue(option, 'width', units)}
                 </li>
               )}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label={`Width (${units === 'mm' ? 'mm' : 'in'})`}
+                  label={`Width (${units})`}
                   type="number"
                   required
                 />
@@ -184,13 +184,13 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
-                  {formatDimensionValue(option, 'thickness', units, false)}
+                  {formatDimensionValue(option, 'thickness', units)}
                 </li>
               )}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label={`Thickness (${units === 'mm' ? 'mm' : 'in'})`}
+                  label={`Thickness (${units})`}
                   type="number"
                   required
                 />

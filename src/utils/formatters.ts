@@ -100,7 +100,6 @@ export const formatDimensionValue = (
   value: number | null | undefined, 
   dimension: 'length' | 'width' | 'thickness',
   units: string,
-  convertToMM: boolean = true,
   short: boolean = false
 ): string => {
   if (value === null || value === undefined || isNaN(value)) return '';
@@ -110,7 +109,7 @@ export const formatDimensionValue = (
   if (isNaN(numValue)) return '';
   
   // Convert from mm (stored value) to display units
-  let displayValue = units === 'in' && convertToMM ? numValue / 25.4 : numValue;
+  let displayValue = units === 'in' ? numValue / 25.4 : numValue;
   
   if (units === 'in') {
     if (dimension === 'thickness') {

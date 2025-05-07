@@ -16,7 +16,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const PADDING = 30;
+  const PADDING = 100;
   const [scaleFactor, setScaleFactor] = useState(1);
   
   // Safe drawing function to handle canvas operations with error catching
@@ -51,8 +51,8 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
       const canvas = canvasRef.current;
       
       // Calculate a dynamic scale factor based on the available space
-      const targetWidth = 800; // Target width in pixels
-      const targetHeight = 600; // Target height in pixels
+      const targetWidth = 1000; // Target width in pixels
+      const targetHeight = 1000; // Target height in pixels
       
       // Calculate scale based on the larger dimension to maintain aspect ratio
       const widthScale = (targetWidth - PADDING * 2) / stock.width;
@@ -185,14 +185,14 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           const width = placement.rotated ? piece.length : piece.width;
           const length = placement.rotated ? piece.width : piece.length;
           
-          const labelX = PADDING + placement.x * newScaleFactor + (width * newScaleFactor / 2);
-          const labelY = PADDING + placement.y * newScaleFactor + (length * newScaleFactor / 2);
+          const labelX = PADDING + placement.x * newScaleFactor + (length * newScaleFactor / 2);
+          const labelY = PADDING + placement.y * newScaleFactor + (width * newScaleFactor / 2);
           
           // Verify position is within canvas bounds
           if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
             // Show dimensions considering rotation
             ctx.fillText(
-              `${formatDimensionValue(width, 'width', unit, true, true)}×${formatDimensionValue(length, 'length', unit, true, true)} ${unit}${placement.rotated ? ' (R)' : ''}`,
+              `${formatDimensionValue(length, 'length', unit, true)}x${formatDimensionValue(width, 'width', unit, true)} ${placement.rotated ? ' (R)' : ''}`,
               labelX,
               labelY
             );
@@ -257,24 +257,29 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         });
         
         // Filter out cuts that are too close to each other (within kerf width)
-        const filteredHorizontalCuts = Array.from(allHorizontalCuts).sort((a, b) => a - b);
-        const filteredVerticalCuts = Array.from(allVerticalCuts).sort((a, b) => a - b);
+        const filteredHorizontalCuts = Array.from(allHorizontalCuts)
+          .sort((a, b) => a - b)
+          .filter((cut, index, cuts) => index === 0 || cut - cuts[index - 1] > kerfSize);
+
+        const filteredVerticalCuts = Array.from(allVerticalCuts)
+          .sort((a, b) => a - b)
+          .filter((cut, index, cuts) => index === 0 || cut - cuts[index - 1] > kerfSize);
         
         // Draw all horizontal cut lines with counter
         let horizontalLinesDrawn = 0;
         filteredHorizontalCuts.forEach(y => {
           ctx.beginPath();
-          ctx.moveTo(PADDING, PADDING + y * newScaleFactor);
-          ctx.lineTo(PADDING + stock.length * newScaleFactor, PADDING + y * newScaleFactor);
+          ctx.moveTo(PADDING, PADDING + ((kerfSize/2) *newScaleFactor) + y * newScaleFactor);
+          ctx.lineTo(PADDING + stock.length * newScaleFactor, PADDING + ((kerfSize/2) *newScaleFactor) + y * newScaleFactor);
           ctx.stroke();
 
-          // Add text label above the line showing distance from left edge
+          // Add text label left of the line showing distance from left edge
           ctx.fillStyle = '#000000';
           ctx.font = '10px Arial';
-          ctx.textAlign = 'center';
-          const textX = PADDING -5;
-          const textY = PADDING + y * newScaleFactor;
-          ctx.fillText(`${formatDimensionValue(y, 'length', unit)}`, textX, textY);
+          ctx.textAlign = 'right';
+          const textX = PADDING - 5;
+          const textY = PADDING + 3 + y * newScaleFactor;
+          ctx.fillText(`${formatDimensionValue(y, 'length', unit, true)}`, textX, textY);
 
           horizontalLinesDrawn++;
         });
@@ -283,8 +288,8 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         let verticalLinesDrawn = 0;
         filteredVerticalCuts.forEach(x => {
           ctx.beginPath();
-          ctx.moveTo(PADDING + x * newScaleFactor, PADDING);
-          ctx.lineTo(PADDING + x * newScaleFactor, PADDING + stock.width * newScaleFactor);
+          ctx.moveTo(PADDING + ((kerfSize/2) *newScaleFactor) + x * newScaleFactor, PADDING);
+          ctx.lineTo(PADDING + ((kerfSize/2) *newScaleFactor) + x * newScaleFactor, PADDING + stock.width * newScaleFactor);
           ctx.stroke();
           
           // Add text label above the line showing distance from left edge
@@ -293,7 +298,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           ctx.textAlign = 'center';
           const textX = PADDING + x * newScaleFactor;
           const textY = PADDING - 5; // Position above the panel
-          ctx.fillText(`${formatDimensionValue(x, 'width', unit)}`, textX, textY);
+          ctx.fillText(`${formatDimensionValue(x, 'width', unit, true)}`, textX, textY);
           
           verticalLinesDrawn++;
         });

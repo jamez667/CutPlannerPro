@@ -121,7 +121,7 @@ const AddLinearDialog: React.FC<AddLinearDialogProps> = ({
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
-                  {formatDimensionValue(option, 'length', units, false)}
+                  {formatDimensionValue(option, 'length', units)}
                 </li>
               )}
               renderInput={(params) => (

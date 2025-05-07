@@ -546,7 +546,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                       <TableCell>{stock.stock.description}</TableCell>
                       <TableCell>{formatDimensionValue(stock.stock.length, "length", units)}</TableCell>
                       <TableCell>{formatDimensionValue(stock.stock.width, "width", units)}</TableCell>
-                      <TableCell>{formatDimensionValue(stock.stock.thickness, "thickness", units, true)}</TableCell>
+                      <TableCell>{formatDimensionValue(stock.stock.thickness, "thickness", units)}</TableCell>
                       <TableCell>{stock.stock.grainDirection}</TableCell>
                       <TableCell>{stock.stock.quantity}</TableCell>
                       <TableCell>{stock.priority}</TableCell>
@@ -597,14 +597,14 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                 { field: 'quantity', headerName: 'Qty', width: 80, type: 'number' },
                 { 
                   field: 'length', 
-                  headerName: `Length (${useMetric ? 'mm' : 'in'})`, 
+                  headerName: `Length (${units})`, 
                   width: 120,
                   type: 'number',
                   renderCell: (params) => {
                     const value = params.row.length;
                     if (!useMetric) {
-                      const displayValue = convertFromMetric(value, 'in');
-                      return `${formatImperialFraction(displayValue)}`;
+                      const displayValue = convertFromMetric(value, units);
+                      return `${formatDimensionValue(displayValue, 'length', units)}`;
                     } else {
                       return Math.round(value);
                     }
@@ -612,14 +612,14 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                 },
                 { 
                   field: 'width', 
-                  headerName: `Width (${useMetric ? 'mm' : 'in'})`, 
+                  headerName: `Width (${units})`, 
                   width: 120,
                   type: 'number',
                   renderCell: (params) => {
                     const value = params.row.width;
                     if (!useMetric) {
-                      const displayValue = convertFromMetric(value, 'in');
-                      return `${formatImperialFraction(displayValue)}`;
+                      const displayValue = convertFromMetric(value, units);
+                      return `${formatDimensionValue(displayValue, 'width', units)}`;
                     } else {
                       return Math.round(value);
                     }

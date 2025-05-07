@@ -248,12 +248,7 @@ const MaterialWarehouse: React.FC<MaterialWarehouseProps> = ({ units }) => {
       type: 'number',
       renderCell: (params) => {
         const value = params.row.length;
-        if (units === 'in') {
-          const displayValue = convertFromMetric(value, 'in');
-          return `${formatImperialFraction(displayValue)}`;
-        } else {
-          return Math.round(value);
-        }
+        return `${formatDimensionValue(value, 'length', units)}`;
       }
     },
     { 
@@ -263,12 +258,7 @@ const MaterialWarehouse: React.FC<MaterialWarehouseProps> = ({ units }) => {
       type: 'number',
       renderCell: (params) => {
         const value = params.row.width;
-        if (units === 'in') {
-          const displayValue = convertFromMetric(value, 'in');
-          return `${formatImperialFraction(displayValue)}`;
-        } else {
-          return Math.round(value);
-        }
+        return `${formatDimensionValue(value, 'width', units)}`;
       }
     },
     { 
@@ -278,12 +268,7 @@ const MaterialWarehouse: React.FC<MaterialWarehouseProps> = ({ units }) => {
       type: 'number',
       renderCell: (params) => {
         const value = params.row.thickness;
-        if (units === 'in') {
-          const displayValue = convertFromMetric(value, 'in');
-          return `${formatImperialFraction(displayValue)}`;
-        } else {
-          return Math.round(value);
-        }
+        return `${formatDimensionValue(value, 'thickness', units)}`;
       }
     },
     { 
