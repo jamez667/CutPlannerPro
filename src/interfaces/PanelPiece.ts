@@ -4,6 +4,6 @@ export interface PanelPiece {
   length: number;
   width: number;
   quantity: number;
-  grain: 'Lengthwise' | 'Widthwise' | 'N/A';
+  grainDirection: 'Lengthwise' | 'Widthwise' | 'N/A';
   notes: string;
 }

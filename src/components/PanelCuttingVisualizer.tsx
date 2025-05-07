@@ -118,11 +118,37 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
       drawSafely(ctx => {
         ctx.fillStyle = '#EEEEEE';
         ctx.fillRect(PADDING, PADDING, stock.length * newScaleFactor, stock.width * newScaleFactor);
+        
+        // Draw grain direction lines
+        ctx.strokeStyle = 'rgba(0,0,0,0.05)'; // Very faint grey
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        
+        const grainSpacing = 20; // Adjust for desired line density
+        
+        // Determine grain direction - INVERSE
+        const isHorizontalGrain = stock.grainDirection === 'Lengthwise';
+        
+        if (isHorizontalGrain) {
+          // Draw horizontal lines for grain
+          for (let y = PADDING; y <= stock.width * newScaleFactor + PADDING; y += grainSpacing) {
+            ctx.moveTo(PADDING, y);
+            ctx.lineTo(stock.length * newScaleFactor + PADDING, y);
+          }
+        } else {
+          // Draw vertical lines for grain
+          for (let x = PADDING; x <= stock.length * newScaleFactor + PADDING; x += grainSpacing) {
+            ctx.moveTo(x, PADDING);
+            ctx.lineTo(x, stock.width * newScaleFactor + PADDING);
+          }
+        }
+        
+        ctx.stroke();
+        
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 2;
         ctx.strokeRect(PADDING, PADDING, stock.length * newScaleFactor, stock.width * newScaleFactor);
       });
-      
       
       // Draw each piece
       console.log('About to draw pieces, placements count:', layout.placements);
@@ -152,6 +178,33 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
           console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledWidth}x${scaledLength}`);
           
           ctx.fillRect(x, y, scaledWidth, scaledLength);
+          
+          // Draw grain direction lines on the piece
+          if (piece.grainDirection !== 'N/A') {
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)'; // Even fainter grey
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            const grainSpacing = 10; // Adjust for desired line density
+            
+            const isHorizontalGrain = piece.grainDirection === 'Lengthwise';
+            
+            if (isHorizontalGrain) {
+              // Draw horizontal lines for grain
+              for (let grainY = y; grainY <= y + scaledLength; grainY += grainSpacing) {
+                ctx.moveTo(x, grainY);
+                ctx.lineTo(x + scaledWidth, grainY);
+              }
+            } else {
+              // Draw vertical lines for grain
+              for (let grainX = x; grainX <= x + scaledWidth; grainX += grainSpacing) {
+                ctx.moveTo(grainX, y);
+                ctx.lineTo(grainX, y + scaledLength);
+              }
+            }
+            
+            ctx.stroke();
+          }
           
           ctx.strokeStyle = '#000000';
           ctx.lineWidth = 1;
@@ -316,28 +369,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ stock, 
       }}>
         Scale: {scaleFactor.toFixed(2)}x | Panel: {stock?.width}×{stock?.length} {unit}
       </div>
-      {/* List of Pieces */}
-      <div>
-        <strong>Pieces:</strong>
-        <ul>
-          {pieces.map(piece => (
-            <li key={piece.id}>
-              {piece.name ? `${piece.name} ` : ''}({piece.width}x{piece.length})
-            </li>
-          ))}
-        </ul>
-      </div>
-      {/* List of Placements */}
-      <div>
-        <strong>Placements:</strong>
-        <ul>
-          {layout.placements.map((placement, index) => (
-            <li key={index}>
-              Piece Id: {placement.pieceId}, X: {placement.x}, Y: {placement.y}, Rotated: {placement.rotated ? 'Yes' : 'No'}
-            </li>
-          ))}
-        </ul>
-      </div>
+
       <canvas 
         ref={canvasRef} 
         style={{ 

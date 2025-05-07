@@ -68,7 +68,7 @@ const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({
         length: unit === 'in' ? convertToMetric(lengthValue, 'in') : lengthValue,
         width: unit === 'in' ? convertToMetric(widthValue, 'in') : widthValue,
         quantity: Number(quantity),
-        grain,
+        grainDirection: grain,
         notes: notes.trim()
       };
       onAdd(newPiece);

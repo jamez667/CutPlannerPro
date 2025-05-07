@@ -639,7 +639,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
             return (
               <Box key={layout.stockId} sx={{ mt: 3, mb: 5, border: '1px solid #ccc', padding: 2 }}>
                 <Typography variant="h6">
-                  Stock: {stockItem.description} ({convertFromMetric(stockItem.length, units)} x {convertFromMetric(stockItem.width, units)} {useMetric ? 'mm' : 'in'})
+                  Stock: {stockItem.description} ({convertFromMetric(stockItem.length, units)} x {convertFromMetric(stockItem.width, units)} {useMetric ? 'mm' : 'in'}) {stockItem.grainDirection}
                 </Typography>
                 <Typography variant="body2">
                   Wastage for this sheet: {layout.wastePercentage}%
