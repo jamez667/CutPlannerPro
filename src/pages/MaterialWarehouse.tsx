@@ -4,7 +4,7 @@ import { PanelStock } from '../interfaces/PanelStock';
 import { PanelStockFormData } from '../interfaces/PanelStockFormData';
 import { LinearStock } from '../interfaces/LinearStock';
 import { LinearStockFormData } from '../interfaces/LinearStockFormData';
-import { MaterialWarehouseProps } from '../interfaces/MaterialWarehouseProps';
+import { RequiresUnitsProps } from '../interfaces/RequiresUnitsProps';
 import AddPanelDialog from '../components/AddPanelDialog';
 import AddLinearDialog from '../components/AddLinearDialog';
 import {
@@ -18,9 +18,6 @@ import {
   AccordionSummary,
   AccordionDetails,
   Button,
-  List,
-  ListItem,
-  ListItemText,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -50,7 +47,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const MaterialWarehouse: React.FC<MaterialWarehouseProps> = ({ units }) => {
+const MaterialWarehouse: React.FC<RequiresUnitsProps> = ({ units }) => {
   const [tabValue, setTabValue] = React.useState(0);
   // Panel stock state
   const [panelStockRows, setPanelStockRows] = React.useState<PanelStock[]>(() => {

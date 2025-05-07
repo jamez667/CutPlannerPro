@@ -34,9 +34,9 @@ import PanelCuttingVisualizer from '../components/PanelCuttingVisualizer';
 import { convertFromMetric } from '../utils/unitConversion';
 import { formatDimensionValue, formatImperialFraction } from '../utils/formatters';
 import Cookies from 'js-cookie';
-import { PanelCuttingPlansProps } from '../interfaces/PanelCuttingPlansProps';
+import { RequiresUnitsProps } from '../interfaces/RequiresUnitsProps';
 
-const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
+const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
   const [availablePanelStocks, setAvailablePanelStocks] = useState<PanelStock[]>([]);
   const [selectedStockItems, setSelectedStockItems] = useState<PanelCuttingPlanStockItem[]>([]);
   const [selectedStockId, setSelectedStockId] = useState<number | null>(null);

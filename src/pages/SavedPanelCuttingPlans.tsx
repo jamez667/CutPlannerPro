@@ -23,12 +23,9 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { PanelCuttingPlan } from '../interfaces/PanelCuttingPlan';
 import Cookies from 'js-cookie';
 import { formatDimensionValue } from '../utils/formatters';
+import { RequiresUnitsProps } from '../interfaces/RequiresUnitsProps';
 
-interface SavedPanelCuttingPlansProps {
-  units: 'in' | 'mm';
-}
-
-const SavedPanelCuttingPlans: React.FC<SavedPanelCuttingPlansProps> = ({ units }) => {
+const SavedPanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
   // State for saved cutting plans
   const [savedPlans, setSavedPlans] = useState<PanelCuttingPlan[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
