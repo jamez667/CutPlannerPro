@@ -35,6 +35,7 @@ import { convertFromMetric } from '../utils/unitConversion';
 import { formatDimensionValue, formatImperialFraction } from '../utils/formatters';
 import Cookies from 'js-cookie';
 import { RequiresUnitsProps } from '../interfaces/RequiresUnitsProps';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
   const [availablePanelStocks, setAvailablePanelStocks] = useState<PanelStock[]>([]);
@@ -48,6 +49,11 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
   const [notes, setNotes] = useState<string>('');
   const [useMetric, setUseMetric] = useState<boolean>(units === 'mm');
   const [savedPlans, setSavedPlans] = useState<PanelCuttingPlan[]>([]);
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   const [woodSpeciesOptions, setWoodSpeciesOptions] = useState<string[]>([
     'Pine', 'Oak', 'Maple', 'Cherry', 'Walnut', 'Birch', 'Plywood', 'MDF', 'Particleboard'
   ]);
@@ -85,6 +91,45 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
       console.error('Error loading panel stock data:', e);
     }
   }, []);
+
+  // Load saved plans from cookies
+  useEffect(() => {
+    try {
+      const savedPlansJson = Cookies.get('savedPanelCuttingPlans');
+      if (savedPlansJson) {
+        const parsedPlans = JSON.parse(savedPlansJson);
+        setSavedPlans(parsedPlans);
+      }
+    } catch (e) {
+      console.error('Error loading saved plans:', e);
+    }
+  }, []);
+
+  // Load plan from URL parameters if available
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const loadPlanId = params.get('loadPlan');
+    
+    if (loadPlanId && savedPlans.length > 0) {
+      const id = parseInt(loadPlanId);
+      const planToEdit = savedPlans.find(plan => plan.id === id);
+      
+      if (planToEdit) {
+        setEditingPlanId(id);
+        setPlanName(planToEdit.name);
+        setNotes(planToEdit.notes || '');
+        setKerfSize(planToEdit.kerfSize || 3); // Default to 3mm if undefined
+        setSelectedStockItems(planToEdit.selectedStock);
+        setRequiredPieces(planToEdit.requiredPieces);
+        setGeneratedPlan(planToEdit);
+        
+        // Automatically open the visualization for the loaded plan
+        setShowVisualization(true);
+      } else {
+        console.warn('No plan found with id:', id);
+      }
+    }
+  }, [location.search, savedPlans]);
 
   // Handle stock selection
   const handleStockSelect = (event: SelectChangeEvent<string>) => {
@@ -432,9 +477,44 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
       if (savedPlansJson) {
         savedPlans = JSON.parse(savedPlansJson);
       }
+
+      // Check if we're updating an existing plan
+      if (editingPlanId) {
+        // Update the existing plan
+        const updatedPlan = {
+          ...generatedPlan,
+          id: editingPlanId,
+          updatedDate: new Date(),
+          name: planName || generatedPlan.name
+        };
+        
+        // Find and replace the old plan
+        const planIndex = savedPlans.findIndex(plan => plan.id === editingPlanId);
+        if (planIndex !== -1) {
+          savedPlans[planIndex] = updatedPlan;
+        } else {
+          // If somehow the plan doesn't exist anymore, just add it
+          savedPlans.push(updatedPlan);
+        }
+        
+        // Clear editing mode
+        setEditingPlanId(null);
+        
+        // Update URL to remove query parameter
+        navigate('/panel/create', { replace: true });
+      } else {
+        // Create a new plan
+        const newPlan = {
+          ...generatedPlan,
+          name: planName || `Plan ${new Date().toLocaleDateString()}`
+        };
+        
+        // Add the new plan
+        savedPlans.push(newPlan);
+      }
       
-      savedPlans.push(generatedPlan);
-      Cookies.set('savedPanelCuttingPlans', JSON.stringify(savedPlans));
+      // Save to cookie
+      Cookies.set('savedPanelCuttingPlans', JSON.stringify(savedPlans), { expires: 365 });
       
       // Update local state
       setSavedPlans(savedPlans);
@@ -443,11 +523,24 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
       setPlanName('');
       setNotes('');
       
-      alert('Cutting plan saved successfully!');
+      alert(`Cutting plan ${editingPlanId ? 'updated' : 'saved'} successfully!`);
     } catch (err) {
       console.error('Error saving cutting plan:', err);
-      alert('Failed to save cutting plan.');
+      alert(`Failed to ${editingPlanId ? 'update' : 'save'} cutting plan.`);
     }
+  };
+
+  // Handle loading a saved plan for editing
+  const handleLoadPlan = (plan: PanelCuttingPlan) => {
+    setPlanName(plan.name);
+    setNotes(plan.notes || '');
+    setKerfSize(plan.kerfSize || 3); // Add default value of 3 if kerfSize is undefined
+    setSelectedStockItems(plan.selectedStock);
+    setRequiredPieces(plan.requiredPieces);
+    setGeneratedPlan(plan);
+    
+    // Automatically open the visualization for the loaded plan
+    setShowVisualization(true);
   };
 
   return (
@@ -672,6 +765,50 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
               Generate Cutting Plan
             </Button>
           </Box>
+        </Box>
+        
+        {/* Saved Plans Section */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" gutterBottom>Saved Cutting Plans</Typography>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Created Date</TableCell>
+                  <TableCell>Updated Date</TableCell>
+                  <TableCell>Wastage (%)</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {savedPlans.length > 0 ? (
+                  savedPlans.map((plan) => (
+                    <TableRow key={plan.id}>
+                      <TableCell>{plan.name}</TableCell>
+                      <TableCell>{new Date(plan.createdDate).toLocaleString()}</TableCell>
+                      <TableCell>{new Date(plan.updatedDate).toLocaleString()}</TableCell>
+                      <TableCell>{plan.wastagePercentage}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outlined"
+                          onClick={() => handleLoadPlan(plan)}
+                        >
+                          Load Plan
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      No saved plans found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Box>
       </Paper>
       
