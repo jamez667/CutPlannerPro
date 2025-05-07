@@ -153,13 +153,15 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
             }
             
             if (isHorizontalGrain) {
-              // Draw horizontal lines for grain (along the piece length)
-              for (let grainY = y; grainY <= y + scaledLength; grainY += grainSpacing) {
+              // Draw horizontal lines for grain (along the width of the drawn rectangle)
+              // Fix: When drawing horizontal grain lines, iterate from y to y + scaledWidth
+              for (let grainY = y; grainY <= y + scaledWidth; grainY += grainSpacing) {
                 ctx.moveTo(x, grainY);
                 ctx.lineTo(x + scaledLength, grainY);
               }
             } else {
-              // Draw vertical lines for grain (along the piece width)
+              // Draw vertical lines for grain (along the length of the drawn rectangle)
+              // Fix: When drawing vertical grain lines, iterate from x to x + scaledLength
               for (let grainX = x; grainX <= x + scaledLength; grainX += grainSpacing) {
                 ctx.moveTo(grainX, y);
                 ctx.lineTo(grainX, y + scaledWidth);
