@@ -303,7 +303,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         allHorizontalCuts.forEach(y => {
           ctx.beginPath();
           ctx.moveTo(PADDING, PADDING + y * newScaleFactor);
-          ctx.lineTo(PADDING + stock.width * newScaleFactor, PADDING + y * newScaleFactor);
+          ctx.lineTo(PADDING + stock.length * newScaleFactor, PADDING + y * newScaleFactor); // Fixed: Use length instead of width
           ctx.stroke();
           horizontalLinesDrawn++;
         });
