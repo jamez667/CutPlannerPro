@@ -15,6 +15,8 @@ export interface CutPlacement {
 
 export interface PanelCuttingPlanLayout {
   stockId: number;
+  stockInstanceId?: string; // Unique ID for this specific sheet instance
+  sheetIndex?: number;      // Index of this sheet among multiple of the same stock type
   placements: CutPlacement[];
   wastePercentage: number;
 }
@@ -26,9 +28,10 @@ export interface PanelCuttingPlan {
   updatedDate: Date;
   selectedStock: PanelCuttingPlanStockItem[];
   requiredPieces: PanelPiece[];
-  expandedPieces?: PanelPiece[]; // Add this property to store the expanded pieces
+  expandedPieces?: PanelPiece[];    // Store the expanded pieces
+  unplacedPieceIds?: string[];      // Store IDs of pieces that couldn't be placed
   layouts: PanelCuttingPlanLayout[];
   wastagePercentage: number;
   notes: string;
-  kerfSize?: number; // Add kerf size to the plan
+  kerfSize?: number;                // Kerf size for the plan
 }

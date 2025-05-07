@@ -161,11 +161,11 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         // Filter out cuts that are too close to each other (within kerf width)
         const filteredHorizontalCuts = Array.from(allHorizontalCuts)
           .sort((a, b) => a - b)
-          .filter((cut, index, cuts) => index === 0 || cut - cuts[index - 1] > kerfSize);
+          .filter((cut, index, cuts) => index === 0 || cut - cuts[index - 1] > kerfSize * 2);
 
         const filteredVerticalCuts = Array.from(allVerticalCuts)
           .sort((a, b) => a - b)
-          .filter((cut, index, cuts) => index === 0 || cut - cuts[index - 1] > kerfSize);
+          .filter((cut, index, cuts) => index === 0 || cut - cuts[index - 1] > kerfSize * 2);
         
         // Draw all horizontal cut lines with counter
         let horizontalLinesDrawn = 0;

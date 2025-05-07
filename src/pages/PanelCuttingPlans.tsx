@@ -262,183 +262,250 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
       totalCutArea += cut.length * cut.width;
     });
     
-    // Top-to-bottom placement algorithm
-    // For each stock sheet
-    selectedStockWithMeta.forEach(stockWithMeta => {
-      const stock = stockWithMeta.stock;
-      totalStockArea += stock.length * stock.width;
+    // Track which pieces have been placed
+    const placedPieceIds = new Set<string>();
+    
+    // Function to check if a position is available for a rectangle
+    const isPositionAvailable = (
+      placedRectangles: {x: number, y: number, length: number, width: number}[], 
+      stock: PanelStock,
+      x: number, 
+      y: number, 
+      length: number, 
+      width: number
+    ): boolean => {
+      // Check if the rectangle would go outside the stock boundaries
+      if (x < 0 || y < 0 || x + length > stock.length || y + width > stock.width) {
+        return false;
+      }
       
-      // Track placed pieces
-      const placedRectangles: {x: number, y: number, length: number, width: number}[] = [];
-      
-      // Create a layout for this stock
-      const layout: PanelCuttingPlanLayout = {
-        stockId: stock.id,
-        placements: [],
-        wastePercentage: 0 // Will calculate after placements
-      };
-      
-      // Function to check if a position is available for a rectangle
-      const isPositionAvailable = (x: number, y: number, length: number, width: number): boolean => {
-        // Check if the rectangle would go outside the stock boundaries
-        if (x < 0 || y < 0 || x + length > stock.length || y + width > stock.width) {
-          return false;
+      // Check if the rectangle overlaps with any placed rectangle (including kerf spacing)
+      for (const placed of placedRectangles) {
+        // Add kerf size to the overlap check to ensure space for the saw blade
+        if (!(x >= placed.x + placed.length + kerfSize || 
+              placed.x >= x + length + kerfSize ||
+              y >= placed.y + placed.width + kerfSize || 
+              placed.y >= y + width + kerfSize)) {
+          return false; // Overlap detected or insufficient kerf space
         }
-        
-        // Check if the rectangle overlaps with any placed rectangle (including kerf spacing)
-        for (const placed of placedRectangles) {
-          // Add kerf size to the overlap check to ensure space for the saw blade
-          if (!(x >= placed.x + placed.length + kerfSize || 
-                placed.x >= x + length + kerfSize ||
-                y >= placed.y + placed.width + kerfSize || 
-                placed.y >= y + width + kerfSize)) {
-            return false; // Overlap detected or insufficient kerf space
-          }
-        }
-        
-        return true;
-      };
+      }
       
-      // Improved top-to-bottom placement algorithm:
-      // 1. Try to place each piece at the topmost available position
-      // 2. For each x position, find the lowest y position where the piece fits
+      return true;
+    };
+    
+    // Function to try placing a piece with given dimensions starting from the top
+    const tryPlaceFromTop = (
+      placedRectangles: {x: number, y: number, length: number, width: number}[],
+      stock: PanelStock,
+      piece: PanelPiece,
+      pieceLength: number, 
+      pieceWidth: number, 
+      isRotated: boolean
+    ): {placed: boolean, x?: number, y?: number} => {
+      // For left-to-right, top-to-bottom filling, we need to find the topmost open position
+      // and then scan from left to right at that Y-coordinate
       
-      for (const piece of expandedPieces) {
-        // Skip pieces that have already been placed
-        if (layouts.some(l => l.placements.some(p => p.pieceId === piece.id))) {
-          continue;
-        }
-        
-        // Check if piece is square - if so, no rotation is needed
-        const isSquare = Math.abs(piece.length - piece.width) < 0.001;
-        
-        // Determine whether piece MUST be rotated based on grain direction constraints
-        const mustRotateForGrain = 
-          piece.grainDirection !== 'N/A' && 
-          stock.grainDirection !== 'N/A' &&
-          ((piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
-           (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise'));
-        
-        // Determine whether piece CAN be rotated
-        const canRotate = 
-          isSquare || 
-          piece.grainDirection === 'N/A' || 
-          stock.grainDirection === 'N/A' ||
-          // Allow rotation if grain directions are perpendicular (actually MUST rotate in this case)
-          mustRotateForGrain;
-          
-        // Logging for debugging
-        console.log(`Piece ${piece.id} - ${piece.name}: grain=${piece.grainDirection}, stock grain=${stock.grainDirection}`);
-        console.log(`  mustRotateForGrain=${mustRotateForGrain}, canRotate=${canRotate}`);
-        
-        let placed = false;
+      // Create a grid of Y positions to try, starting from the top
+      const maxY = stock.width - pieceWidth;
+      let bestY = Infinity;
+      let bestX = Infinity;
 
-        // For the improved top-down placement strategy:
-        // 1. If grain requires rotation, try rotated placement first
-        // 2. Otherwise try non-rotated placement
-        // 3. For each x position, find the lowest valid y position
-
-        // Function to try placing a piece with given dimensions starting from the top
-        const tryPlaceFromTop = (pieceLength: number, pieceWidth: number, isRotated: boolean): boolean => {
-          // For left-to-right, top-to-bottom filling, we need to find the topmost open position
-          // and then scan from left to right at that Y-coordinate
-          
-          // Create a grid of Y positions to try, starting from the top
-          const maxY = stock.width - pieceWidth;
-          let bestY = Infinity;
-          let bestX = Infinity;
-
-          // For each possible y position
-          for (let y = 0; y <= maxY; y++) {
-            // For each possible x position at this y level
-            for (let x = 0; x <= stock.length - pieceLength; x++) {
-              // Check if position is available
-              if (isPositionAvailable(x, y, pieceLength, pieceWidth)) {
-                // If we found a position that's higher up, use it
-                if (y < bestY || (y === bestY && x < bestX)) {
-                  bestY = y;
-                  bestX = x;
-                  // If we found a position at the very top (y=0), no need to look further
-                  if (y === 0) {
-                    break;
-                  }
-                }
+      // For each possible y position
+      for (let y = 0; y <= maxY; y++) {
+        // For each possible x position at this y level
+        for (let x = 0; x <= stock.length - pieceLength; x++) {
+          // Check if position is available
+          if (isPositionAvailable(placedRectangles, stock, x, y, pieceLength, pieceWidth)) {
+            // If we found a position that's higher up, use it
+            if (y < bestY || (y === bestY && x < bestX)) {
+              bestY = y;
+              bestX = x;
+              // If we found a position at the very top (y=0), no need to look further
+              if (y === 0) {
+                break;
               }
             }
-            
-            // If we found a position at this y-level, no need to check lower y values
-            if (bestY === y) {
-              break;
-            }
           }
+        }
+        
+        // If we found a position at this y-level, no need to check lower y values
+        if (bestY === y) {
+          break;
+        }
+      }
 
-          // If we found a valid position
-          if (bestY !== Infinity && bestX !== Infinity) {
-            // Place the piece
+      // If we found a valid position
+      if (bestY !== Infinity && bestX !== Infinity) {
+        return {
+          placed: true,
+          x: bestX,
+          y: bestY
+        };
+      }
+      
+      return { placed: false }; // No valid placement found
+    };
+        
+    // Process each stock item by priority
+    for (const stockWithMeta of selectedStockWithMeta) {
+      const stock = stockWithMeta.stock;
+      
+      // Get the quantity of this stock type available
+      const stockQuantity = stock.quantity || 1;
+      
+      // Try to use as many sheets of this stock as needed (up to the quantity available)
+      for (let sheetIndex = 0; sheetIndex < stockQuantity; sheetIndex++) {
+        // Skip using additional sheets if all pieces are already placed
+        if (placedPieceIds.size === expandedPieces.length) {
+          break;
+        }
+        
+        // Check if there are still unplaced pieces
+        const unplacedPieces = expandedPieces.filter(piece => !placedPieceIds.has(piece.id));
+        if (unplacedPieces.length === 0) {
+          break;
+        }
+        
+        console.log(`Processing stock ${stock.description} sheet #${sheetIndex + 1} of ${stockQuantity}`);
+        
+        // Create a unique ID for this stock sheet instance
+        const stockInstanceId = `${stock.id}-${sheetIndex}`;
+        
+        // Add area of this stock to total
+        totalStockArea += stock.length * stock.width;
+        
+        // Track placed pieces for this specific sheet
+        const placedRectangles: {x: number, y: number, length: number, width: number}[] = [];
+        
+        // Create a layout for this specific stock sheet
+        const layout: PanelCuttingPlanLayout = {
+          stockId: stock.id,
+          stockInstanceId: stockInstanceId,
+          sheetIndex: sheetIndex,
+          placements: [],
+          wastePercentage: 0 // Will calculate after placements
+        };
+        
+        // Try to place each unplaced piece on this sheet
+        for (const piece of unplacedPieces) {
+          // Check if piece is square - if so, no rotation is needed
+          const isSquare = Math.abs(piece.length - piece.width) < 0.001;
+          
+          // Determine whether piece MUST be rotated based on grain direction constraints
+          const mustRotateForGrain = 
+            piece.grainDirection !== 'N/A' && 
+            stock.grainDirection !== 'N/A' &&
+            ((piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
+             (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise'));
+          
+          // Determine whether piece CAN be rotated
+          const canRotate = 
+            isSquare || 
+            piece.grainDirection === 'N/A' || 
+            stock.grainDirection === 'N/A' ||
+            // Allow rotation if grain directions are perpendicular (actually MUST rotate in this case)
+            mustRotateForGrain;
+            
+          console.log(`Piece ${piece.id} - ${piece.name}: grain=${piece.grainDirection}, stock grain=${stock.grainDirection}`);
+          console.log(`  mustRotateForGrain=${mustRotateForGrain}, canRotate=${canRotate}`);
+          
+          let placement = { placed: false };
+
+          // First attempt: If must rotate for grain, try rotated placement
+          if (mustRotateForGrain) {
+            placement = tryPlaceFromTop(placedRectangles, stock, piece, piece.width, piece.length, true);
+          } 
+          
+          // Second attempt: Try normal orientation if not already placed and rotation is not mandatory
+          if (!placement.placed && !mustRotateForGrain) {
+            placement = tryPlaceFromTop(placedRectangles, stock, piece, piece.length, piece.width, false);
+          }
+          
+          // Third attempt: Try rotated if allowed and not already placed
+          if (!placement.placed && canRotate && !mustRotateForGrain) {
+            placement = tryPlaceFromTop(placedRectangles, stock, piece, piece.width, piece.length, true);
+          }
+          
+          // If piece was successfully placed
+          // Use type guard to narrow the type instead of checking properties directly
+          if (placement.placed && 'x' in placement && 'y' in placement) {
+            // Determine dimensions based on rotation
+            const isRotated = 
+              (mustRotateForGrain) || 
+              (!mustRotateForGrain && !placement.placed && canRotate);
+            
+            const pieceLength = isRotated ? piece.width : piece.length;
+            const pieceWidth = isRotated ? piece.length : piece.width;
+            
+            // Explicitly cast x and y to number or use their numeric value
+            const x: number = placement.x as number;
+            const y: number = placement.y as number;
+            
+            // Add to placed rectangles
             placedRectangles.push({
-              x: bestX, y: bestY, length: pieceLength, width: pieceWidth
+              x: x,
+              y: y,
+              length: pieceLength,
+              width: pieceWidth
             });
             
+            // Add to layout placements
             layout.placements.push({
               pieceId: piece.id,
-              x: bestX, y: bestY,
+              x: x,
+              y: y,
               rotated: isRotated
             });
             
-            console.log(`  Placed piece ${piece.id} at (${bestX},${bestY}) ${isRotated ? 'ROTATED' : ''}`);
-            return true;
+            // Mark piece as placed
+            placedPieceIds.add(piece.id);
+            
+            console.log(`  Placed piece ${piece.id} at (${x},${y}) ${isRotated ? 'ROTATED' : ''} on sheet #${sheetIndex + 1}`);
+          } else {
+            console.log(`  Could not place piece ${piece.id} on this sheet #${sheetIndex + 1}`);
           }
-          
-          return false; // No valid placement found
-        };
-
-        // First attempt: If must rotate for grain, try rotated placement
-        if (mustRotateForGrain) {
-          placed = tryPlaceFromTop(piece.width, piece.length, true);
-        } 
-        
-        // Second attempt: Try normal orientation if not already placed and rotation is not mandatory
-        if (!placed && !mustRotateForGrain) {
-          placed = tryPlaceFromTop(piece.length, piece.width, false);
         }
         
-        // Third attempt: Try rotated if allowed and not already placed
-        if (!placed && canRotate && !mustRotateForGrain) {
-          placed = tryPlaceFromTop(piece.width, piece.length, true);
-        }
+        // Calculate waste percentage for this layout
+        let usedArea = 0;
+        layout.placements.forEach(placement => {
+          const piece = expandedPieces.find(p => p.id === placement.pieceId);
+          if (piece) {
+            const length = placement.rotated ? piece.width : piece.length;
+            const width = placement.rotated ? piece.length : piece.width;
+            usedArea += length * width;
+          }
+        });
         
-        // If piece couldn't be placed, we'll try to place it on the next stock sheet
-        if (!placed) {
-          console.log(`  Could not place piece ${piece.id} on this stock`);
+        const stockArea = stock.length * stock.width;
+        layout.wastePercentage = Math.round((1 - (usedArea / stockArea)) * 100);
+        
+        // Only add layouts that have placements
+        if (layout.placements.length > 0) {
+          layouts.push(layout);
+        } else {
+          // If no pieces were placed on this sheet, reduce the total stock area
+          totalStockArea -= stock.length * stock.width;
         }
       }
-      
-      // Calculate waste percentage for this layout
-      let usedArea = 0;
-      layout.placements.forEach(placement => {
-        const cut = expandedPieces.find(c => c.id === placement.pieceId);
-        if (cut) {
-          usedArea += cut.length * cut.width;
-        }
-      });
-      
-      const stockArea = stock.length * stock.width;
-      layout.wastePercentage = Math.round((1 - (usedArea / stockArea)) * 100);
-      
-      // Only add layouts that have placements
-      if (layout.placements.length > 0) {
-        layouts.push(layout);
-      }
-    });
+    }
+    
+    // Check if there are unplaced pieces
+    const unplacedPieces = expandedPieces.filter(piece => !placedPieceIds.has(piece.id));
+    if (unplacedPieces.length > 0) {
+      console.warn('Not all pieces could be placed:', unplacedPieces.length, 'pieces remaining');
+    }
     
     // Calculate overall waste percentage
     let totalUsedArea = 0;
-    console.log('layout count:', layouts.length);
+    console.log('Layout count:', layouts.length);
     layouts.forEach(layout => {
       layout.placements.forEach(placement => {
         const expandedPiece = expandedPieces.find(c => c.id === placement.pieceId);
         if (expandedPiece) {
-          totalUsedArea += expandedPiece.length * expandedPiece.width;
+          const length = placement.rotated ? expandedPiece.width : expandedPiece.length;
+          const width = placement.rotated ? expandedPiece.length : expandedPiece.width;
+          totalUsedArea += length * width;
         }
       });
     });
@@ -455,6 +522,8 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
       requiredPieces: plannedPieces,
       // Store the expanded pieces to make them available for visualization
       expandedPieces: expandedPieces,
+      // Store unplaced pieces to indicate which ones didn't fit
+      unplacedPieceIds: Array.from(unplacedPieces.map(p => p.id)),
       layouts,
       wastagePercentage,
       notes: notes || '',
@@ -464,6 +533,11 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
     setGeneratedPlan(cuttingPlan);
     setShowVisualization(true);
     setError('');
+    
+    // Show a warning if there are unplaced pieces
+    if (unplacedPieces.length > 0) {
+      setError(`Warning: ${unplacedPieces.length} pieces could not be placed on the available stock.`);
+    }
   };
 
   // Save the generated plan
@@ -766,50 +840,6 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
             </Button>
           </Box>
         </Box>
-        
-        {/* Saved Plans Section */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" gutterBottom>Saved Cutting Plans</Typography>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Created Date</TableCell>
-                  <TableCell>Updated Date</TableCell>
-                  <TableCell>Wastage (%)</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {savedPlans.length > 0 ? (
-                  savedPlans.map((plan) => (
-                    <TableRow key={plan.id}>
-                      <TableCell>{plan.name}</TableCell>
-                      <TableCell>{new Date(plan.createdDate).toLocaleString()}</TableCell>
-                      <TableCell>{new Date(plan.updatedDate).toLocaleString()}</TableCell>
-                      <TableCell>{plan.wastagePercentage}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outlined"
-                          onClick={() => handleLoadPlan(plan)}
-                        >
-                          Load Plan
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">
-                      No saved plans found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
       </Paper>
       
       {/* Add Piece Dialog */}
@@ -868,15 +898,20 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
             
             if (!stockItem) return null;
             
-            // Find the pieces that are placed in this layout - using generatedPlan.expandedPieces
+            // Find the pieces that are placed in this layout
             const layoutPieces = generatedPlan.expandedPieces?.filter(
               (p: PanelPiece) => layout.placements.some(placement => placement.pieceId === p.id)
             ) || [];
             
+            // Create a descriptive sheet name that includes the sheet index if available
+            const sheetLabel = layout.sheetIndex !== undefined 
+              ? `Sheet #${layout.sheetIndex + 1}` 
+              : '';
+            
             return (
-              <Box key={layout.stockId} sx={{ mt: 3, mb: 5, border: '1px solid #ccc', padding: 2 }}>
+              <Box key={layout.stockInstanceId || `${layout.stockId}-default`} sx={{ mt: 3, mb: 5, border: '1px solid #ccc', padding: 2 }}>
                 <Typography variant="h6">
-                  Stock: {stockItem.description} ({convertFromMetric(stockItem.length, units)} x {convertFromMetric(stockItem.width, units)} {useMetric ? 'mm' : 'in'}) {stockItem.grainDirection}
+                  Stock: {stockItem.description} {sheetLabel} ({formatDimensionValue(stockItem.length, 'length', units)} x {formatDimensionValue(stockItem.width, 'width', units)}) {stockItem.grainDirection}
                 </Typography>
                 <Typography variant="body2">
                   Wastage for this sheet: {layout.wastePercentage}%
@@ -886,7 +921,7 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                     stock={stockItem}
                     pieces={layoutPieces}
                     layout={layout}
-                    unit={useMetric ? 'mm' : 'in'}
+                    unit={units}
                     kerfSize={kerfSize}
                   />
                 </Box>
@@ -894,7 +929,19 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
             );
           })}
           
-          {/* Display any unplaced pieces if we have them */}
+          {/* Display warning about unplaced pieces if any */}
+          {generatedPlan.unplacedPieceIds && generatedPlan.unplacedPieceIds.length > 0 && (
+            <Box sx={{ mt: 3, mb: 3, p: 2, bgcolor: '#fff4e5', borderRadius: 1, border: '1px solid #ffab40' }}>
+              <Typography variant="subtitle1" color="warning.dark">
+                <strong>Warning:</strong> {generatedPlan.unplacedPieceIds.length} pieces could not be placed on the available stock.
+              </Typography>
+              <Typography variant="body2">
+                Consider adding more stock sheets or adjusting your piece dimensions.
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Display if no layouts could be generated */}
           {generatedPlan.layouts.length === 0 && (
             <Typography variant="body1" color="error">
               No layouts could be generated. Please adjust your stock or cut requirements.
