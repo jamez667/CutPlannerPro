@@ -21,12 +21,14 @@ const App: React.FC = () => {
   const handleUnitsChange = (e: SelectChangeEvent) => {
     const newUnits = e.target.value;
     setUnits(newUnits);
+    console.log('Units changed to:', newUnits);
     Cookies.set('units', newUnits, { expires: 365 }); // Store for 1 year
   };
 
   const handleLanguageChange = (e: SelectChangeEvent) => {
     const newLanguage = e.target.value;
     setLanguage(newLanguage);
+    console.log('Language changed to:', newLanguage);
     Cookies.set('language', newLanguage, { expires: 365 }); // Store for 1 year
   };
 

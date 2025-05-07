@@ -12,7 +12,7 @@ export const convertFromMetric = (value: number, toUnit: string): number => {
     // For display values, round to the nearest 1/16th inch
     // This gives us more precision than three decimal places for proper woodworking measurements
     const inchValue = value / 25.4;
-    return Math.round(inchValue * 16) / 16; // Round to nearest 1/16th inch
+    return Math.round(inchValue * 32) / 32; // Round to nearest 1/32th inch
   }
   return value;
 };

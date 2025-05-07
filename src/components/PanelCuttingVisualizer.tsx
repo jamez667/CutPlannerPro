@@ -1,17 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { PanelStock } from '../interfaces/PanelStock';
-import { PanelPiece } from '../interfaces/PanelPiece';
-import { PanelCuttingPlanLayout } from '../interfaces/PanelCuttingPlan';
-import { convertFromMetric } from '../utils/unitConversion';
 import { formatDimensionValue } from '../utils/formatters';
-
-interface PanelCuttingVisualizerProps {
-  stock: PanelStock;
-  pieces: PanelPiece[];
-  layout: PanelCuttingPlanLayout;
-  unit: string;
-  kerfSize?: number; // Make kerfSize optional with a default value
-}
+import { PanelCuttingVisualizerProps } from '../interfaces/PanelCuttingVisualizerProps';
 
 const colors = [
   '#FFB6C1', '#FFD700', '#98FB98', '#87CEFA', '#DDA0DD',
@@ -30,25 +19,6 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
   const PADDING = 30;
   const [scaleFactor, setScaleFactor] = useState(1);
   
-  console.log('PanelCuttingVisualizer rendered with props:', { 
-    stock: stock ? { width: stock.width, length: stock.length } : 'missing', 
-    pieces: pieces?.length || 0, 
-    layout: layout ? 'exists' : 'missing',
-    layoutPlacements: layout?.placements ? `${layout.placements.length} placements` : 'no placements'
-  });
-
-  // Helper function to format dimensions based on the current unit
-  const formatDimension = (value: number, dimension: 'length' | 'width'): string => {
-    if (unit === 'in') {
-      // We need to convert from mm to inches since all stored values are in mm
-      const inchValue = convertFromMetric(value, 'in');
-      // Round to nearest 1/16 inch for display purposes
-      const roundedValue = Math.round(inchValue * 16) / 16;
-      return formatDimensionValue(roundedValue, dimension, unit, false);
-    }
-    return `${Math.round(value)}`;
-  };
-  
   // Safe drawing function to handle canvas operations with error catching
   const drawSafely = (callback: (ctx: CanvasRenderingContext2D) => void): void => {
     try {
@@ -65,20 +35,8 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
   useEffect(() => {
     // Reset error state on new render attempt
     setError(null);
-    console.log('useEffect triggered', { 
-      canvasExists: !!canvasRef.current, 
-      layoutExists: !!layout, 
-      placementsExist: !!layout?.placements, 
-      stockExists: !!stock 
-    });
     
     if (!canvasRef.current || !layout || !layout.placements || !stock) {
-      console.log('Early return condition met:', {
-        canvasRef: !!canvasRef.current,
-        layout: !!layout,
-        placements: !!layout?.placements,
-        stock: !!stock
-      });
       return;
     }
 
@@ -123,7 +81,6 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Draw the stock panel
-      console.log('Drawing stock panel:', stock);
       drawSafely(ctx => {
         ctx.fillStyle = '#EEEEEE';
         ctx.fillRect(PADDING, PADDING, stock.length * newScaleFactor, stock.width * newScaleFactor);
@@ -132,13 +89,10 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         ctx.strokeStyle = 'rgba(0,0,0,0.05)'; // Very faint grey
         ctx.lineWidth = 1;
         ctx.beginPath();
-        
         const grainSpacing = 20; // Adjust for desired line density
         
-        // Determine grain direction - INVERSE
-        const isHorizontalGrain = stock.grainDirection === 'Lengthwise';
-        
-        if (isHorizontalGrain) {
+        // Determine grain direction
+        if (stock.grainDirection === 'Lengthwise') {
           // Draw horizontal lines for grain
           for (let y = PADDING; y <= stock.width * newScaleFactor + PADDING; y += grainSpacing) {
             ctx.moveTo(PADDING, y);
@@ -153,25 +107,19 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
         }
         
         ctx.stroke();
-        
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 2;
         ctx.strokeRect(PADDING, PADDING, stock.length * newScaleFactor, stock.width * newScaleFactor);
       });
       
       // Draw each piece
-      console.log('About to draw pieces, placements count:', layout.placements);
       layout.placements.forEach((placement, index) => {
-        console.log(`Drawing placement ${index}:`, placement);
-        console.log('pieces:', pieces);
         const piece = pieces.find(c => c.id === placement.pieceId);
         if (!piece) {
-          console.log(`Could not find piece with ID: ${placement.pieceId}`);
           return;
         }
 
         drawSafely(ctx => {
-          console.log('Drawing piece:', piece, 'at placement:', placement);
           const colorIndex = index % colors.length;
           ctx.fillStyle = colors[colorIndex];
           
@@ -244,7 +192,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
             // Show dimensions considering rotation
             ctx.fillText(
-              `${formatDimension(width, 'width')}×${formatDimension(length, 'length')} ${unit}${placement.rotated ? ' (R)' : ''}`,
+              `${formatDimensionValue(width, 'width', unit, true, true)}×${formatDimensionValue(length, 'length', unit, true, true)} ${unit}${placement.rotated ? ' (R)' : ''}`,
               labelX,
               labelY
             );
@@ -319,6 +267,15 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           ctx.moveTo(PADDING, PADDING + y * newScaleFactor);
           ctx.lineTo(PADDING + stock.length * newScaleFactor, PADDING + y * newScaleFactor);
           ctx.stroke();
+
+          // Add text label above the line showing distance from left edge
+          ctx.fillStyle = '#000000';
+          ctx.font = '10px Arial';
+          ctx.textAlign = 'center';
+          const textX = PADDING -5;
+          const textY = PADDING + y * newScaleFactor;
+          ctx.fillText(`${formatDimensionValue(y, 'length', unit)}`, textX, textY);
+
           horizontalLinesDrawn++;
         });
         
@@ -336,7 +293,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           ctx.textAlign = 'center';
           const textX = PADDING + x * newScaleFactor;
           const textY = PADDING - 5; // Position above the panel
-          ctx.fillText(`${formatDimension(x, 'length')}`, textX, textY);
+          ctx.fillText(`${formatDimensionValue(x, 'width', unit)}`, textX, textY);
           
           verticalLinesDrawn++;
         });

@@ -5,23 +5,12 @@ import {
   Typography,
   Box,
   Button,
-  Grid,
-  List,
-  ListItem,
-  ListItemText,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   IconButton,
   TextField,
-  Checkbox,
-  Switch,
-  FormControlLabel,
   Table,
   TableContainer,
   TableBody,
@@ -35,20 +24,17 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import { PanelStock } from '../interfaces/PanelStock';
 import { PanelPiece } from '../interfaces/PanelPiece';
 import { PanelCuttingPlan, PanelCuttingPlanStockItem, PanelCuttingPlanLayout } from '../interfaces/PanelCuttingPlan';
 import AddPanelPieceDialog from '../components/AddPanelCutDialog';
 import AddPanelDialog from '../components/AddPanelDialog';
 import PanelCuttingVisualizer from '../components/PanelCuttingVisualizer';
-import { convertFromMetric, convertToMetric } from '../utils/unitConversion';
+import { convertFromMetric } from '../utils/unitConversion';
 import { formatDimensionValue, formatImperialFraction } from '../utils/formatters';
 import Cookies from 'js-cookie';
-
-interface PanelCuttingPlansProps {
-  units: 'in' | 'mm';
-}
+import { PanelCuttingPlansProps } from '../interfaces/PanelCuttingPlansProps';
 
 const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
   const [availablePanelStocks, setAvailablePanelStocks] = useState<PanelStock[]>([]);
@@ -178,15 +164,6 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
     setAddPanelCutDialogOpen(false);
   };
 
-  // Format stock dimensions for display
-  const formatStockDimension = (value: number) => {
-    if (!useMetric) {
-      const inValue = convertFromMetric(value, 'in');
-      return formatImperialFraction(inValue);
-    }
-    return Math.round(value);
-  };
-
   // Handle generating the cutting plan
   const generateCuttingPlan = () => {
     const selectedPanelStocks = selectedStockItems.map(item => item.stock);
@@ -304,6 +281,27 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
         
         // Try to find a spot for this piece
         let placed = false;
+
+        // If not placed without rotation, try with rotation if allowed
+        if (!placed && shouldTryRotatedFirst) {
+          for (let x = 0; x <= stock.length - piece.width && !placed; x += 1) {
+            for (let y = 0; y <= stock.width - piece.length && !placed; y += 1) {
+              if (isPositionAvailable(x, y, piece.width, piece.length)) {
+                placedRectangles.push({
+                  x, y, length: piece.width, width: piece.length
+                });
+                
+                layout.placements.push({
+                  pieceId: piece.id,
+                  x, y,
+                  rotated: true // Rotated
+                });
+                
+                placed = true;
+              }
+            }
+          }
+        }
         
         // Try placing without rotation (either as first attempt or as fallback)
         if (!placed) {
@@ -450,7 +448,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
             >
               {commonKerfSizes.map((option) => (
                 <MenuItem key={option.value} value={option.value.toString()}>
-                  {option.label}
+                  {formatDimensionValue(option.value, "thickness", units)}
                 </MenuItem>
               ))}
               <MenuItem divider />
@@ -495,7 +493,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
               >
                 {availablePanelStocks.map((stock) => (
                   <MenuItem key={stock.id} value={stock.id}>
-                    {stock.description} ({formatStockDimension(stock.length)} x {formatStockDimension(stock.width)})
+                    {stock.description} ({formatDimensionValue(stock.length, "length", units)} x {formatDimensionValue(stock.width, "width", units)} {useMetric ? 'mm' : 'in'}) {stock.grainDirection}
                   </MenuItem>
                 ))}
                 <MenuItem divider />
@@ -525,9 +523,9 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
                   selectedStockItems.map((stock) => (
                     <TableRow key={stock.stock.id}>
                       <TableCell>{stock.stock.description}</TableCell>
-                      <TableCell>{formatStockDimension(stock.stock.length)}</TableCell>
-                      <TableCell>{formatStockDimension(stock.stock.width)}</TableCell>
-                      <TableCell>{formatStockDimension(stock.stock.thickness)}</TableCell>
+                      <TableCell>{formatDimensionValue(stock.stock.length, "length", units)}</TableCell>
+                      <TableCell>{formatDimensionValue(stock.stock.width, "width", units)}</TableCell>
+                      <TableCell>{formatDimensionValue(stock.stock.thickness, "thickness", units, true)}</TableCell>
                       <TableCell>{stock.stock.grainDirection}</TableCell>
                       <TableCell>{stock.stock.quantity}</TableCell>
                       <TableCell>{stock.priority}</TableCell>

@@ -8,7 +8,7 @@ export const formatImperialMeasurement = (inches: number | null | undefined): st
   return `${value}" (${feet}'${remainingInches > 0 ? remainingInches + '"' : '0"'})`;
 };
 
-export const formatImperialFraction = (decimal: number | null | undefined): string => {
+export const formatImperialFraction = (decimal: number | null | undefined, short: boolean = false): string => {
   if (decimal == null || isNaN(decimal)) return '';
   const value = Number(decimal);
   if (isNaN(value)) return '';
@@ -72,7 +72,7 @@ export const formatImperialFraction = (decimal: number | null | undefined): stri
   }
   
   // Add foot measurement in brackets if the value is 12 inches or more
-  if (value >= 12) {
+  if (value >= 12 && !short) {
     const feet = Math.floor(value / 12);
     const remainingInches = value % 12;
     
@@ -96,18 +96,12 @@ export const formatImperialFraction = (decimal: number | null | undefined): stri
   return result;
 };
 
-export const formatImperialThickness = (inches: number | null | undefined): string => {
-  if (inches == null || isNaN(inches)) return '';
-  const value = Number(inches);
-  if (isNaN(value)) return '';
-  return `${value}" (${formatImperialFraction(value)})`;
-};
-
 export const formatDimensionValue = (
   value: number | null | undefined, 
   dimension: 'length' | 'width' | 'thickness',
   units: string,
-  convertToMM: boolean = true
+  convertToMM: boolean = true,
+  short: boolean = false
 ): string => {
   if (value === null || value === undefined || isNaN(value)) return '';
   
@@ -120,10 +114,10 @@ export const formatDimensionValue = (
   
   if (units === 'in') {
     if (dimension === 'thickness') {
-      return `${numValue}" (${formatImperialFraction(displayValue)})`;
+      return `${Intl.NumberFormat('en', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(displayValue)}" (${formatImperialFraction(displayValue, short)})`;
     }
-    return formatImperialFraction(displayValue);
+    return formatImperialFraction(displayValue, short);
   } else {
-    return `${Math.round(displayValue)} mm`;
+    return `${Intl.NumberFormat('en', {minimumFractionDigits: 1, maximumFractionDigits: 1}).format(displayValue)} mm`;
   }
 };
