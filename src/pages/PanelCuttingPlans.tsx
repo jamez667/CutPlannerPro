@@ -241,7 +241,7 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       
       // Instead of creating a massive grid, use a more efficient data structure
       // to track occupied spaces (just store the placed rectangles)
-      const placedRectangles: {x: number, y: number, width: number, height: number}[] = [];
+      const placedRectangles: {x: number, y: number, length: number, width: number}[] = [];
       
       // Create a layout for this stock
       const layout: PanelCuttingPlanLayout = {
@@ -251,18 +251,20 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
       };
       
       // Function to check if a position is available for a rectangle
-      const isPositionAvailable = (x: number, y: number, width: number, height: number): boolean => {
+      const isPositionAvailable = (x: number, y: number, length: number, width: number): boolean => {
         // Check if the rectangle would go outside the stock boundaries
-        if (x < 0 || y < 0 || x + width > stock.length || y + height > stock.width) {
+        if (x < 0 || y < 0 || x + length > stock.length || y + width > stock.width) {
           return false;
         }
         
         // Check if the rectangle overlaps with any placed rectangle
         for (const placed of placedRectangles) {
-          // Check for overlap
-          if (!(x + width <= placed.x || placed.x + placed.width <= x || 
-                y + height <= placed.y || placed.y + placed.height <= y)) {
-            return false;
+          // Fixed overlap check: two rectangles overlap unless one is completely to the left, right, above, or below the other
+          if (!(x >= placed.x + placed.width || // New rectangle is completely to the right
+                placed.x >= x + length ||       // New rectangle is completely to the left
+                y >= placed.y + placed.length || // New rectangle is completely below
+                placed.y >= y + width)) {      // New rectangle is completely above
+            return false; // Overlap detected
           }
         }
         
@@ -276,52 +278,44 @@ const PanelCuttingPlans: React.FC<PanelCuttingPlansProps> = ({ units }) => {
           continue;
         }
         
+        // Check if piece is square - if so, no rotation is needed
+        const isSquare = Math.abs(piece.length - piece.width) < 0.001;
+        
+        // Determine when a piece can be rotated:
+        // 1. If piece is square, rotation doesn't matter (but we'll skip rotation for efficiency)
+        // 2. If grain direction is N/A, it can always be rotated
+        // 3. If piece is lengthwise and stock is widthwise, they can be rotated to align the grains
+        // 4. If piece is widthwise and stock is lengthwise, they can be rotated to align the grains
+        // const canRotate = 
+        //   isSquare || 
+        //   piece.grainDirection === 'N/A' || 
+        //   (piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
+        //   (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise');
+        
+        // For grain-aligned pieces, prioritize placement in rotated or non-rotated orientation
+        // based on how the grain directions align (but don't bother rotating square pieces)
+        // const shouldTryRotatedFirst = 
+        //   !isSquare && (
+        //     (piece.grainDirection === 'Lengthwise' && stock.grainDirection === 'Widthwise') ||
+        //     (piece.grainDirection === 'Widthwise' && stock.grainDirection === 'Lengthwise')
+        //   );
+        
         // Try to find a spot for this piece
         let placed = false;
         
-        // Try placing without rotation first
-        for (let x = 0; x <= stock.length - piece.length && !placed; x += 1) {
-          for (let y = 0; y <= stock.width - piece.width && !placed; y += 1) {
-            if (isPositionAvailable(x, y, piece.length, piece.width)) {
-              // Record the placement
-              placedRectangles.push({
-                x, 
-                y, 
-                width: piece.length, 
-                height: piece.width
-              });
-              
-              // When placing each piece, ensure we're using pieceId consistently
-              layout.placements.push({
-                pieceId: piece.id,
-                x,
-                y,
-                rotated: false
-              });
-              
-              placed = true;
-            }
-          }
-        }
-        
-        // If not placed, try with rotation
-        if (!placed && piece.length !== piece.width) {
-          for (let x = 0; x <= stock.length - piece.width && !placed; x += 1) {
-            for (let y = 0; y <= stock.width - piece.length && !placed; y += 1) {
+        // Try placing without rotation (either as first attempt or as fallback)
+        if (!placed) {
+          for (let x = 0; x <= stock.width - piece.width && !placed; x += 1) {
+            for (let y = 0; y <= stock.length - piece.length && !placed; y += 1) {
               if (isPositionAvailable(x, y, piece.width, piece.length)) {
-                // Record the placement
                 placedRectangles.push({
-                  x, 
-                  y, 
-                  width: piece.width, 
-                  height: piece.length
+                  x, y, length: piece.length, width: piece.width
                 });
                 
                 layout.placements.push({
-                  pieceId: piece.id,  // Make sure we're using the correct ID reference
-                  x,
-                  y,
-                  rotated: true
+                  pieceId: piece.id,
+                  x, y,
+                  rotated: false // Not rotated
                 });
                 
                 placed = true;
