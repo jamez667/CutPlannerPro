@@ -64,9 +64,9 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
     if (units === 'in') {
       setFormData({
         ...initialData,
-        length: convertFromMetric(initialData.length || 0, 'in'),
-        width: convertFromMetric(initialData.width || 0, 'in'),
-        thickness: convertFromMetric(initialData.thickness || 0, 'in'),
+        length: convertFromMetric(initialData.length || 0, units),
+        width: convertFromMetric(initialData.width || 0, units),
+        thickness: convertFromMetric(initialData.thickness || 0, units),
       });
     } else {
       setFormData(initialData);
@@ -111,7 +111,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
         if (!isNaN(numberValue)) {
           // When selecting from presets, the values are already in the correct units
           // No need for additional conversion
-          setFormData(prev => ({ ...prev, [dimension]: convertToMetric(numberValue, units) }));
+          setFormData(prev => ({ ...prev, [dimension]: numberValue }));
         }
       } else {
         setFormData(prev => ({ ...prev, [dimension]: '' as unknown as number }));
