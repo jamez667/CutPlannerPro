@@ -22,7 +22,6 @@ import { convertFromMetric, convertToMetric } from '../utils/unitConversion'; //
 const filter = createFilterOptions<string>();
 
 const getPresets = (units: string) => {
-  console.log('getPresets called with units:', units);
   const metricPresets = {
     lengths: [2440, 2800, 3050],
     widths: [1220, 1525, 1830],
@@ -120,6 +119,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with data:', formData);
     onSubmit(formData);
   };
 
@@ -132,9 +132,9 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
         <DialogContent>
           <Box sx={{ display: 'grid', gap: 2, pt: 2 }}>
             <Autocomplete
-              value={formData.length || null}
+              value={formData.length ? convertFromMetric(formData.length, units) : null}
               onChange={handleDimensionChange('length')}
-              options={currentPresets.lengths}
+              options={currentPresets.lengths.map(length => length)} // Adjust presets to match visual display
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
@@ -155,9 +155,9 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
               handleHomeEndKeys
             />
             <Autocomplete
-              value={formData.width || null}
+              value={formData.width ? convertFromMetric(formData.width, units) : null} // Divide the length by 2 for visual display
               onChange={handleDimensionChange('width')}
-              options={currentPresets.widths}
+              options={currentPresets.widths.map(width => width)} 
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
@@ -178,9 +178,9 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
               handleHomeEndKeys
             />
             <Autocomplete
-              value={formData.thickness || null}
+              value={formData.thickness ? convertFromMetric(formData.thickness, units) : null}
               onChange={handleDimensionChange('thickness')}
-              options={currentPresets.thicknesses}
+              options={currentPresets.thicknesses.map(thickness => thickness)} 
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
