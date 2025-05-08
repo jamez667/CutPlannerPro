@@ -1,4 +1,4 @@
-export enum Unit {
+export enum Length {
     MM = 'mm',
     INCH = 'in',
 }

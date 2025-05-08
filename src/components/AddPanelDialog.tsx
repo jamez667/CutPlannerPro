@@ -17,6 +17,7 @@ import {
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import { PanelStockFormData } from '../interfaces/PanelStockFormData';
 import { formatDimensionValue } from '../utils/formatters';
+import { Dimension } from "../enums/Dimension";
 import { convertFromMetric, convertToMetric } from '../utils/unitConversion'; // Import conversion function
 
 const filter = createFilterOptions<string>();
@@ -137,7 +138,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
-                  {formatDimensionValue(option, 'length', units)}
+                  {formatDimensionValue(option, Dimension.LENGTH, units)}
                 </li>
               )}
               renderInput={(params) => (
@@ -160,7 +161,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
-                  {formatDimensionValue(option, 'width', units)}
+                  {formatDimensionValue(option, Dimension.WIDTH, units)}
                 </li>
               )}
               renderInput={(params) => (
@@ -183,7 +184,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
-                  {formatDimensionValue(option, 'thickness', units)}
+                  {formatDimensionValue(option, Dimension.THICKNESS, units)}
                 </li>
               )}
               renderInput={(params) => (

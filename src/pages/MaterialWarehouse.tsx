@@ -28,6 +28,7 @@ import Cookies from 'js-cookie';
 import { WoodSpecies } from '../enums/WoodSpecies';
 import { convertToMetric, convertFromMetric } from '../utils/unitConversion';
 import { formatDimensionValue, formatImperialFraction } from '../utils/formatters';
+import { Dimension } from "../enums/Dimension";
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
@@ -245,7 +246,7 @@ const MaterialWarehouse: React.FC<RequiresUnitsProps> = ({ units }) => {
       type: 'number',
       renderCell: (params) => {
         const value = params.row.length;
-        return `${formatDimensionValue(value, 'length', units)}`;
+        return `${formatDimensionValue(value, Dimension.LENGTH, units)}`;
       }
     },
     { 
@@ -255,7 +256,7 @@ const MaterialWarehouse: React.FC<RequiresUnitsProps> = ({ units }) => {
       type: 'number',
       renderCell: (params) => {
         const value = params.row.width;
-        return `${formatDimensionValue(value, 'width', units)}`;
+        return `${formatDimensionValue(value, Dimension.WIDTH, units)}`;
       }
     },
     { 
@@ -265,7 +266,7 @@ const MaterialWarehouse: React.FC<RequiresUnitsProps> = ({ units }) => {
       type: 'number',
       renderCell: (params) => {
         const value = params.row.thickness;
-        return `${formatDimensionValue(value, 'thickness', units)}`;
+        return `${formatDimensionValue(value, Dimension.THICKNESS, units)}`;
       }
     },
     { 

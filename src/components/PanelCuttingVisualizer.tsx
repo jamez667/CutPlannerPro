@@ -1,11 +1,18 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { formatDimensionValue } from '../utils/formatters';
+import { Dimension } from "../enums/Dimension";
 import { PanelCuttingVisualizerProps } from '../interfaces/PanelCuttingVisualizerProps';
 
 const colors = [
   '#FFB6C1', '#FFD700', '#98FB98', '#87CEFA', '#DDA0DD',
   '#FFA07A', '#FFFACD', '#B0E0E6', '#F0E68C', '#E6E6FA'
 ];
+
+// Interface for tracking cuts
+interface CutPosition {
+  position: number;
+  direction: 'horizontal' | 'vertical';
+}
 
 const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({ 
   stock, 
@@ -18,6 +25,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const PADDING = 100;
   const [scaleFactor, setScaleFactor] = useState(1);
+  const [cuts, setCuts] = useState<CutPosition[]>([]);
   
   // Safe drawing function to handle canvas operations with error catching
   const drawSafely = (callback: (ctx: CanvasRenderingContext2D) => void): void => {
@@ -167,6 +175,13 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           .sort((a, b) => a - b)
           .filter((cut, index, cuts) => index === 0 || cut - cuts[index - 1] > kerfSize * 2);
         
+        // Save all cuts for the cut list display
+        const allCuts: CutPosition[] = [
+          ...filteredHorizontalCuts.map(pos => ({ position: pos, direction: 'horizontal' as const })),
+          ...filteredVerticalCuts.map(pos => ({ position: pos, direction: 'vertical' as const }))
+        ];
+        setCuts(allCuts);
+        
         // Draw all horizontal cut lines with counter
         let horizontalLinesDrawn = 0;
         filteredHorizontalCuts.forEach(y => {
@@ -181,7 +196,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           ctx.textAlign = 'right';
           const textX = PADDING - 5;
           const textY = PADDING + 3 + y * newScaleFactor;
-          ctx.fillText(`${formatDimensionValue(y, 'length', unit, true)}`, textX, textY);
+          ctx.fillText(`${formatDimensionValue(y, Dimension.LENGTH, unit, true)}`, textX, textY);
 
           horizontalLinesDrawn++;
         });
@@ -200,7 +215,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           ctx.textAlign = 'center';
           const textX = PADDING + x * newScaleFactor;
           const textY = PADDING - 5; // Position above the panel
-          ctx.fillText(`${formatDimensionValue(x, 'width', unit, true)}`, textX, textY);
+          ctx.fillText(`${formatDimensionValue(x, Dimension.WIDTH, unit, true)}`, textX, textY);
           
           verticalLinesDrawn++;
         });
@@ -292,7 +307,7 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           if (labelX > 0 && labelX < canvas.width && labelY > 0 && labelY < canvas.height) {
             // Show dimensions considering rotation
             ctx.fillText(
-              `${formatDimensionValue(length, 'length', unit, true)}x${formatDimensionValue(width, 'width', unit, true)} ${placement.rotated ? ' (R)' : ''}`,
+              `${formatDimensionValue(length, Dimension.LENGTH, unit, true)}x${formatDimensionValue(width, Dimension.WIDTH, unit, true)} ${placement.rotated ? ' (R)' : ''}`,
               labelX,
               labelY
             );
@@ -330,6 +345,63 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
     }
   }, [stock, pieces, layout, unit, kerfSize]); // Add kerfSize to dependency array
 
+  // Component to display list of cuts
+  const CutsList = () => {
+    if (!cuts.length) return null;
+    
+    // Group cuts by direction
+    const horizontalCuts = cuts.filter(cut => cut.direction === 'horizontal')
+      .sort((a, b) => a.position - b.position);
+    
+    const verticalCuts = cuts.filter(cut => cut.direction === 'vertical')
+      .sort((a, b) => a.position - b.position);
+      
+    return (
+      <div className="cuts-list" style={{ 
+        marginBottom: '20px', 
+        padding: '15px', 
+        backgroundColor: '#f0f7ff', // More noticeable background color
+        borderRadius: '6px',
+        border: '2px solid #007bff', // More prominent border
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+      }}>
+        <h4 style={{ 
+          marginTop: 0, 
+          marginBottom: '10px',
+          color: '#007bff',
+          borderBottom: '1px solid #cce5ff',
+          paddingBottom: '8px'
+        }}>📋 Cutting Guide:</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px' }}>
+          <div style={{ flex: '1', minWidth: '250px' }}>
+            <strong>Horizontal Cuts:</strong> {horizontalCuts.length === 0 && 'None'}
+            {horizontalCuts.length > 0 && (
+              <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
+                {horizontalCuts.map((cut, idx) => (
+                  <li key={`h-${idx}`}>
+                    {formatDimensionValue(cut.position, Dimension.WIDTH, unit, true)} from top edge
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div style={{ flex: '1', minWidth: '250px' }}>
+            <strong>Vertical Cuts:</strong> {verticalCuts.length === 0 && 'None'}
+            {verticalCuts.length > 0 && (
+              <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
+                {verticalCuts.map((cut, idx) => (
+                  <li key={`v-${idx}`}>
+                    {formatDimensionValue(cut.position, Dimension.LENGTH, unit, true)} from left edge
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="panel-cutting-visualizer">
       {error && (
@@ -337,15 +409,11 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           {error}
         </div>
       )}
-      {/* <div style={{  
-        marginBottom: '10px', 
-        padding: '5px', 
-        backgroundColor: '#f0f0f0', 
-        borderRadius: '4px', 
-        fontSize: '14px' 
-      }}>
-        Scale: {scaleFactor.toFixed(2)}x | Panel: {stock?.width}×{stock?.length} {unit} | Kerf: {kerfSize}mm
-      </div>*/}
+      
+      {/* Make sure the CutsList is always rendered if we have stock and layout */}
+      {stock && layout && layout.placements && layout.placements.length > 0 && (
+        <CutsList />
+      )}
 
       <canvas 
         ref={canvasRef} 

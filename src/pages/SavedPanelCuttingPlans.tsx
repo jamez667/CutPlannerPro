@@ -28,6 +28,7 @@ import { formatDimensionValue } from '../utils/formatters';
 import { RequiresUnitsProps } from '../interfaces/RequiresUnitsProps';
 import { useNavigate } from 'react-router-dom';
 import { convertFromMetric } from '../utils/unitConversion';
+import { Dimension } from '../enums/Dimension';
 
 const SavedPanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
   // State for saved cutting plans
@@ -133,7 +134,7 @@ const SavedPanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                     <TableCell>
                       {plan.selectedStock.map((stock, idx) => (
                         <div key={idx}>
-                          {stock.stock.description} ({formatDimensionValue(stock.stock.length, 'length', units)} x {formatDimensionValue(stock.stock.width, 'width', units)} {units})
+                          {stock.stock.description} ({formatDimensionValue(stock.stock.length, Dimension.LENGTH, units)} x {formatDimensionValue(stock.stock.width, Dimension.WIDTH, units)} {units})
                         </div>
                       ))}
                     </TableCell>
@@ -258,8 +259,8 @@ const SavedPanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                     {selectedPlanForView.requiredPieces.map((piece, index) => (
                       <TableRow key={index}>
                         <TableCell>{piece.name}</TableCell>
-                        <TableCell>{formatDimensionValue(piece.length, 'length', units)}</TableCell>
-                        <TableCell>{formatDimensionValue(piece.width, 'width', units)}</TableCell>
+                        <TableCell>{formatDimensionValue(piece.length, Dimension.LENGTH, units)}</TableCell>
+                        <TableCell>{formatDimensionValue(piece.width, Dimension.WIDTH, units)}</TableCell>
                         <TableCell>{piece.quantity}</TableCell>
                         <TableCell>{piece.grainDirection}</TableCell>
                       </TableRow>
@@ -283,7 +284,7 @@ const SavedPanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                 return (
                   <Box key={layout.stockId} sx={{ mt: 3, mb: 3, border: '1px solid #ccc', padding: 2 }}>
                     <Typography variant="subtitle1">
-                      Stock: {stockItem.description} ({formatDimensionValue(stockItem.length, 'length', units)} x {formatDimensionValue(stockItem.width, 'width', units)} {units}) {stockItem.grainDirection}
+                      Stock: {stockItem.description} ({formatDimensionValue(stockItem.length, Dimension.LENGTH, units)} x {formatDimensionValue(stockItem.width, Dimension.WIDTH, units)} {units}) {stockItem.grainDirection}
                     </Typography>
                     <Typography variant="body2">
                       Wastage for this sheet: {layout.wastePercentage}%

@@ -12,6 +12,7 @@ import {
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import { LinearStockFormData } from '../interfaces/LinearStockFormData';
 import { formatDimensionValue } from '../utils/formatters';
+import { Dimension } from "../enums/Dimension";
 import { convertFromMetric } from '../utils/unitConversion';
 
 const filter = createFilterOptions<string>();
@@ -121,7 +122,7 @@ const AddLinearDialog: React.FC<AddLinearDialogProps> = ({
               getOptionLabel={(option) => option?.toString() || ''}
               renderOption={(props, option) => (
                 <li {...props}>
-                  {formatDimensionValue(option, 'length', units)}
+                  {formatDimensionValue(option, Dimension.LENGTH, units)}
                 </li>
               )}
               renderInput={(params) => (

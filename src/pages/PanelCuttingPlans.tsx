@@ -33,6 +33,7 @@ import AddPanelDialog from '../components/AddPanelDialog';
 import PanelCuttingVisualizer from '../components/PanelCuttingVisualizer';
 import { convertFromMetric } from '../utils/unitConversion';
 import { formatDimensionValue, formatImperialFraction } from '../utils/formatters';
+import { Dimension } from "../enums/Dimension";
 import Cookies from 'js-cookie';
 import { RequiresUnitsProps } from '../interfaces/RequiresUnitsProps';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -636,7 +637,7 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
             >
               {commonKerfSizes.map((option) => (
                 <MenuItem key={option.value} value={option.value.toString()}>
-                  {formatDimensionValue(option.value, "thickness", units)}
+                  {formatDimensionValue(option.value, Dimension.THICKNESS, units)}
                 </MenuItem>
               ))}
               <MenuItem divider />
@@ -681,7 +682,7 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
               >
                 {availablePanelStocks.map((stock) => (
                   <MenuItem key={stock.id} value={stock.id}>
-                    {stock.description} ({formatDimensionValue(stock.length, "length", units)} x {formatDimensionValue(stock.width, "width", units)} {useMetric ? 'mm' : 'in'}) {stock.grainDirection}
+                    {stock.description} ({formatDimensionValue(stock.length, Dimension.LENGTH, units)} x {formatDimensionValue(stock.width, Dimension.WIDTH, units)} {useMetric ? 'mm' : 'in'}) {stock.grainDirection}
                   </MenuItem>
                 ))}
                 <MenuItem divider />
@@ -711,9 +712,9 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                   selectedStockItems.map((stock) => (
                     <TableRow key={stock.stock.id}>
                       <TableCell>{stock.stock.description}</TableCell>
-                      <TableCell>{formatDimensionValue(stock.stock.length, "length", units)}</TableCell>
-                      <TableCell>{formatDimensionValue(stock.stock.width, "width", units)}</TableCell>
-                      <TableCell>{formatDimensionValue(stock.stock.thickness, "thickness", units)}</TableCell>
+                      <TableCell>{formatDimensionValue(stock.stock.length, Dimension.LENGTH, units)}</TableCell>
+                      <TableCell>{formatDimensionValue(stock.stock.width, Dimension.WIDTH, units)}</TableCell>
+                      <TableCell>{formatDimensionValue(stock.stock.thickness, Dimension.THICKNESS, units)}</TableCell>
                       <TableCell>{stock.stock.grainDirection}</TableCell>
                       <TableCell>{stock.stock.quantity}</TableCell>
                       <TableCell>{stock.priority}</TableCell>
@@ -771,7 +772,7 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                     const value = params.row.length;
                     if (!useMetric) {
                       const displayValue = convertFromMetric(value, units);
-                      return `${formatDimensionValue(displayValue, 'length', units)}`;
+                      return `${formatDimensionValue(displayValue, Dimension.LENGTH, units)}`;
                     } else {
                       return Math.round(value);
                     }
@@ -786,7 +787,7 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                     const value = params.row.width;
                     if (!useMetric) {
                       const displayValue = convertFromMetric(value, units);
-                      return `${formatDimensionValue(displayValue, 'width', units)}`;
+                      return `${formatDimensionValue(displayValue, Dimension.WIDTH, units)}`;
                     } else {
                       return Math.round(value);
                     }
@@ -911,7 +912,7 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
             return (
               <Box key={layout.stockInstanceId || `${layout.stockId}-default`} sx={{ mt: 3, mb: 5, border: '1px solid #ccc', padding: 2 }}>
                 <Typography variant="h6">
-                  Stock: {stockItem.description} {sheetLabel} ({formatDimensionValue(stockItem.length, 'length', units)} x {formatDimensionValue(stockItem.width, 'width', units)}) {stockItem.grainDirection}
+                  Stock: {stockItem.description} {sheetLabel} ({formatDimensionValue(stockItem.length, Dimension.LENGTH, units)} x {formatDimensionValue(stockItem.width, Dimension.WIDTH, units)}) {stockItem.grainDirection}
                 </Typography>
                 <Typography variant="body2">
                   Wastage for this sheet: {layout.wastePercentage}%
