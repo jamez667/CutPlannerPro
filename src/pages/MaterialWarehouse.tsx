@@ -158,9 +158,9 @@ const MaterialWarehouse: React.FC<RequiresUnitsProps> = ({ units }) => {
   const handlePanelSubmit = (submittedData: PanelStockFormData) => {
     const processedFormData = {
       ...submittedData,
-      length: convertToMetric(Number(submittedData.length), units) || 0,
-      width: convertToMetric(Number(submittedData.width), units) || 0,
-      thickness: convertToMetric(Number(submittedData.thickness), units) || 0,
+      length: submittedData.length || 0,
+      width: submittedData.width || 0,
+      thickness: submittedData.thickness || 0,
       quantity: Number(submittedData.quantity) || 0,
       pricePer: Number(submittedData.pricePer) || 0
     };
@@ -219,7 +219,7 @@ const MaterialWarehouse: React.FC<RequiresUnitsProps> = ({ units }) => {
   const handleLinearSubmit = (submittedData: LinearStockFormData) => {
     const processedFormData = {
       ...submittedData,
-      length: convertToMetric(Number(submittedData.length), units) || 0,
+      length: submittedData.length || 0,
       quantity: Number(submittedData.quantity) || 0,
       pricePer: Number(submittedData.pricePer) || 0
     };
@@ -395,11 +395,9 @@ const MaterialWarehouse: React.FC<RequiresUnitsProps> = ({ units }) => {
 
   // Debug logs
   React.useEffect(() => {
-    console.log('panelStockRows', panelStockRows);
   }, [panelStockRows]);
   
   React.useEffect(() => {
-    console.log('linearStockRows', linearStockRows);
   }, [linearStockRows]);
 
   return (

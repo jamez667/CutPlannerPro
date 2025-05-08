@@ -119,7 +119,6 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with data:', formData);
     onSubmit(formData);
   };
 
