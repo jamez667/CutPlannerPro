@@ -2,6 +2,7 @@ import React from 'react';
 import { Autocomplete, TextField } from '@mui/material';
 import { Dimension } from '../enums/Dimension';
 import { formatDimensionValue } from '../utils/formatters';
+import { convertToMetric } from '../utils/unitConversion';
 
 interface PresetDimensionDropdownProps {
   value: number | null;
@@ -36,6 +37,7 @@ const PresetDimensionDropdown: React.FC<PresetDimensionDropdownProps> = ({
       renderInput={(params) => (
         <TextField
           {...params}
+          onChange={(e) => {onChange(e, convertToMetric(Number(e.target.value), units))}}
           label={`${label} (${units})`}
           type="number"
           required={required}
