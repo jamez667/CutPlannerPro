@@ -5,7 +5,7 @@ import { PanelStockFormData } from '../interfaces/PanelStockFormData';
 import { LinearStock } from '../interfaces/LinearStock';
 import { LinearStockFormData } from '../interfaces/LinearStockFormData';
 import { RequiresUnitsProps } from '../interfaces/RequiresUnitsProps';
-import AddPanelDialog from '../components/AddPanelDialog';
+import AddPanelDialog from '../components/AddPanelStockDialog';
 import AddLinearDialog from '../components/AddLinearDialog';
 import {
   Paper,

@@ -16,26 +16,15 @@ import {
 } from '@mui/material';
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import { PanelStockFormData } from '../interfaces/PanelStockFormData';
-import { formatDimensionValue } from '../utils/formatters';
 import { Dimension } from "../enums/Dimension";
 import { convertFromMetric, convertToMetric } from '../utils/unitConversion'; // Import conversion function
 import { getPresets } from '../utils/getPresets';
 import PresetDimensionDropdown from './PresetDimensionDropdown';
+import { AddPanelStockDialogProps } from '../interfaces/AddPanelStockDialogProps';
 
 const filter = createFilterOptions<string>();
 
-interface AddPanelDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (data: PanelStockFormData) => void;
-  editingId: number | null;
-  initialData: PanelStockFormData;
-  units: string;
-  woodSpeciesOptions: string[];
-  setWoodSpeciesOptions: (species: string[]) => void;
-}
-
-const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
+const AddPanelDialog: React.FC<AddPanelStockDialogProps> = ({
   open,
   onClose,
   onSubmit,

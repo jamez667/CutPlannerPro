@@ -29,7 +29,7 @@ import { PanelStock } from '../interfaces/PanelStock';
 import { PanelPiece } from '../interfaces/PanelPiece';
 import { PanelCuttingPlan, PanelCuttingPlanStockItem, PanelCuttingPlanLayout } from '../interfaces/PanelCuttingPlan';
 import AddPanelPieceDialog from '../components/AddPanelCutDialog';
-import AddPanelDialog from '../components/AddPanelDialog';
+import AddPanelDialog from '../components/AddPanelStockDialog';
 import PanelCuttingVisualizer from '../components/PanelCuttingVisualizer';
 import { convertFromMetric } from '../utils/unitConversion';
 import { formatDimensionValue, formatImperialFraction } from '../utils/formatters';
