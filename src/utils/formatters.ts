@@ -93,7 +93,7 @@ export const formatImperialFraction = (decimal: number | null | undefined, short
   }
   
   // If the difference is too large, just return the decimal value with 2 places
-  if (minDifference > 0.0313) {
+  if (minDifference > 0.03) {
     return `${decimal.toFixed(2)}"`;
   }
   
