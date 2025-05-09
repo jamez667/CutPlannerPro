@@ -20,6 +20,7 @@ import { formatDimensionValue } from '../utils/formatters';
 import { Dimension } from "../enums/Dimension";
 import { convertFromMetric, convertToMetric } from '../utils/unitConversion'; // Import conversion function
 import { getPresets } from '../utils/getPresets';
+import PresetDimensionDropdown from './PresetDimensionDropdown';
 
 const filter = createFilterOptions<string>();
 
@@ -118,75 +119,36 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'grid', gap: 2, pt: 2 }}>
-            <Autocomplete
+            <PresetDimensionDropdown
               value={formData.length ? convertFromMetric(formData.length, units) : null}
               onChange={handleDimensionChange('length')}
-              options={currentPresets.lengths.map(length => length)} // Adjust presets to match visual display
-              getOptionLabel={(option) => option?.toString() || ''}
-              renderOption={(props, option) => (
-                <li {...props}>
-                  {formatDimensionValue(option, Dimension.LENGTH, units)}
-                </li>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={`Length (${units})`}
-                  type="number"
-                  required
-                />
-              )}
-              freeSolo
-              selectOnFocus
-              clearOnBlur
-              handleHomeEndKeys
+              options={currentPresets.lengths}
+              dimension={Dimension.LENGTH}
+              units={units}
+              label="Length"
+              required
             />
-            <Autocomplete
-              value={formData.width ? convertFromMetric(formData.width, units) : null} // Divide the length by 2 for visual display
-              onChange={handleDimensionChange('width')}
-              options={currentPresets.widths.map(width => width)} 
-              getOptionLabel={(option) => option?.toString() || ''}
-              renderOption={(props, option) => (
-                <li {...props}>
-                  {formatDimensionValue(option, Dimension.WIDTH, units)}
-                </li>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={`Width (${units})`}
-                  type="number"
-                  required
-                />
-              )}
-              freeSolo
-              selectOnFocus
-              clearOnBlur
-              handleHomeEndKeys
+            
+            <PresetDimensionDropdown
+              value={formData.width ? convertFromMetric(formData.width, units) : null}
+              onChange={handleDimensionChange('width')} 
+              options={currentPresets.widths}
+              dimension={Dimension.WIDTH}
+              units={units}
+              label="Width"
+              required
             />
-            <Autocomplete
+            
+            <PresetDimensionDropdown
               value={formData.thickness ? convertFromMetric(formData.thickness, units) : null}
               onChange={handleDimensionChange('thickness')}
-              options={currentPresets.thicknesses.map(thickness => thickness)} 
-              getOptionLabel={(option) => option?.toString() || ''}
-              renderOption={(props, option) => (
-                <li {...props}>
-                  {formatDimensionValue(option, Dimension.THICKNESS, units)}
-                </li>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={`Thickness (${units})`}
-                  type="number"
-                  required
-                />
-              )}
-              freeSolo
-              selectOnFocus
-              clearOnBlur
-              handleHomeEndKeys
+              options={currentPresets.thicknesses}
+              dimension={Dimension.THICKNESS}
+              units={units}
+              label="Thickness"
+              required
             />
+            
             <TextField
               name="quantity"
               label="Quantity"
