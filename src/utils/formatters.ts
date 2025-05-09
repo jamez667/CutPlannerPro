@@ -44,25 +44,40 @@ export const formatImperialFraction = (decimal: number | null | undefined, short
   // Extract decimal part with higher precision
   const decimalPart = +(absValue - wholeNumber).toFixed(6);
   
-  // Common fractions used in imperial measurements (in 1/16 increments)
+  // Common fractions used in imperial measurements (in 1/32 increments)
   // Use a more explicit definition to avoid floating-point precision issues
   const fractionMap = [
-    { decimal: 0, fraction: '' },
+    { decimal: 0.0313, fraction: '1/32' },
     { decimal: 0.0625, fraction: '1/16' },
-    { decimal: 0.125, fraction: '1/8' },
+    { decimal: 0.0938, fraction: '3/32' },
+    { decimal: 0.1250, fraction: '1/8' },
+    { decimal: 0.1563, fraction: '5/32' },
     { decimal: 0.1875, fraction: '3/16' },
-    { decimal: 0.25, fraction: '1/4' },
+    { decimal: 0.2188, fraction: '7/32' },
+    { decimal: 0.2500, fraction: '1/4' },
+    { decimal: 0.2813, fraction: '9/32' },
     { decimal: 0.3125, fraction: '5/16' },
-    { decimal: 0.375, fraction: '3/8' },
+    { decimal: 0.3438, fraction: '11/32' },
+    { decimal: 0.3750, fraction: '3/8' },
+    { decimal: 0.4063, fraction: '13/32' },
     { decimal: 0.4375, fraction: '7/16' },
-    { decimal: 0.5, fraction: '1/2' },
+    { decimal: 0.4688, fraction: '15/32' },
+    { decimal: 0.5000, fraction: '1/2' },
+    { decimal: 0.5313, fraction: '17/32' },
     { decimal: 0.5625, fraction: '9/16' },
-    { decimal: 0.625, fraction: '5/8' },
+    { decimal: 0.5938, fraction: '19/32' },
+    { decimal: 0.6250, fraction: '5/8' },
+    { decimal: 0.6563, fraction: '21/32' },
     { decimal: 0.6875, fraction: '11/16' },
-    { decimal: 0.75, fraction: '3/4' },
+    { decimal: 0.7188, fraction: '23/32' },
+    { decimal: 0.7500, fraction: '3/4' },
+    { decimal: 0.7813, fraction: '25/32' },
     { decimal: 0.8125, fraction: '13/16' },
-    { decimal: 0.875, fraction: '7/8' },
-    { decimal: 0.9375, fraction: '15/16' }
+    { decimal: 0.8438, fraction: '27/32' },
+    { decimal: 0.8750, fraction: '7/8' },
+    { decimal: 0.9063, fraction: '29/32' },
+    { decimal: 0.9375, fraction: '15/16' },
+    { decimal: 0.9688, fraction: '31/32' }
   ];
   
   // Find the closest fraction
@@ -78,7 +93,7 @@ export const formatImperialFraction = (decimal: number | null | undefined, short
   }
   
   // If the difference is too large, just return the decimal value with 2 places
-  if (minDifference > 0.04) {
+  if (minDifference > 0.0313) {
     return `${decimal.toFixed(2)}"`;
   }
   
