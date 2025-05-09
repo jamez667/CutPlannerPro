@@ -92,7 +92,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
     }
   };
 
-  const handleDimensionChange = (dimension: 'length' | 'width' | 'thickness') => 
+  const handleDimensionChange = (dimension: Dimension) => 
     (event: React.SyntheticEvent, newValue: number | string | null) => {
       if (newValue !== null) {
         const numberValue = typeof newValue === 'string' ? parseFloat(newValue) : newValue;
@@ -121,7 +121,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
           <Box sx={{ display: 'grid', gap: 2, pt: 2 }}>
             <PresetDimensionDropdown
               value={formData.length ? convertFromMetric(formData.length, units) : null}
-              onChange={handleDimensionChange('length')}
+              onChange={handleDimensionChange(Dimension.LENGTH)}
               options={currentPresets.lengths}
               dimension={Dimension.LENGTH}
               units={units}
@@ -131,7 +131,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
             
             <PresetDimensionDropdown
               value={formData.width ? convertFromMetric(formData.width, units) : null}
-              onChange={handleDimensionChange('width')} 
+              onChange={handleDimensionChange(Dimension.WIDTH)} 
               options={currentPresets.widths}
               dimension={Dimension.WIDTH}
               units={units}
@@ -141,7 +141,7 @@ const AddPanelDialog: React.FC<AddPanelDialogProps> = ({
             
             <PresetDimensionDropdown
               value={formData.thickness ? convertFromMetric(formData.thickness, units) : null}
-              onChange={handleDimensionChange('thickness')}
+              onChange={handleDimensionChange(Dimension.THICKNESS)}
               options={currentPresets.thicknesses}
               dimension={Dimension.THICKNESS}
               units={units}
