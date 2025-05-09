@@ -7,46 +7,24 @@ import {
   TextField,
   Box,
   Button,
-  Autocomplete,
 } from '@mui/material';
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import { LinearStockFormData } from '../interfaces/LinearStockFormData';
-import { formatDimensionValue } from '../utils/formatters';
 import { Dimension } from "../enums/Dimension";
 import { convertFromMetric } from '../utils/unitConversion';
+import { AddLinearStockDialogProps } from '../interfaces/AddLinearStockDialogProps';
+import { getPresets } from '../utils/getPresets';
+import PresetDimensionDropdown from './PresetDimensionDropdown';
 
 const filter = createFilterOptions<string>();
 
-const getPresets = (units: string) => {
-  const metricPresets = {
-    lengths: [600, 1200, 1800, 2400, 3000, 3600],
-  };
-  const imperialPresets = {
-    lengths: [24, 36, 48, 72, 96, 120, 144],
-  };
-  return units === 'in' ? imperialPresets : metricPresets;
-};
-
-interface AddLinearDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (data: LinearStockFormData) => void;
-  editingId: number | null;
-  initialData: LinearStockFormData;
-  units: string;
-  woodSpeciesOptions: string[];
-  setWoodSpeciesOptions: (species: string[]) => void;
-}
-
-const AddLinearDialog: React.FC<AddLinearDialogProps> = ({
+const AddLinearDialog: React.FC<AddLinearStockDialogProps> = ({
   open,
   onClose,
   onSubmit,
   editingId,
   initialData,
-  units,
-  woodSpeciesOptions,
-  setWoodSpeciesOptions,
+  units
 }) => {
   const [formData, setFormData] = React.useState<LinearStockFormData>(initialData);
 
@@ -71,23 +49,6 @@ const AddLinearDialog: React.FC<AddLinearDialogProps> = ({
       [name]: e.target.type === 'number' ? Number(value) : value
     }));
   };
-
-  const handleWoodSpeciesChange = (event: React.SyntheticEvent, newValue: string | null) => {
-    if (newValue) {
-      if (newValue.startsWith('Add "') && newValue.endsWith('"')) {
-        const species = newValue.slice(5, -1);
-        if (!woodSpeciesOptions.includes(species)) {
-          setWoodSpeciesOptions([...woodSpeciesOptions, species]);
-        }
-        setFormData(prev => ({ ...prev, woodSpecies: species }));
-      } else {
-        setFormData(prev => ({ ...prev, woodSpecies: newValue }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, woodSpecies: '' }));
-    }
-  };
-
   const handleDimensionChange = (dimension: 'length') => 
     (event: React.SyntheticEvent, newValue: number | string | null) => {
       if (newValue !== null) {
@@ -115,28 +76,14 @@ const AddLinearDialog: React.FC<AddLinearDialogProps> = ({
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'grid', gap: 2, pt: 2 }}>
-            <Autocomplete
-              value={formData.length || null}
-              onChange={handleDimensionChange('length')}
+            <PresetDimensionDropdown
+              value={formData.length ? convertFromMetric(formData.length, units) : null}
+              onChange={handleDimensionChange(Dimension.LENGTH)}
               options={currentPresets.lengths}
-              getOptionLabel={(option) => option?.toString() || ''}
-              renderOption={(props, option) => (
-                <li {...props}>
-                  {formatDimensionValue(option, Dimension.LENGTH, units)}
-                </li>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={`Length (${units === 'mm' ? 'mm' : 'in'})`}
-                  type="number"
-                  required
-                />
-              )}
-              freeSolo
-              selectOnFocus
-              clearOnBlur
-              handleHomeEndKeys
+              dimension={Dimension.LENGTH}
+              units={units}
+              label="Length"
+              required
             />
             <TextField
               name="quantity"
@@ -146,32 +93,6 @@ const AddLinearDialog: React.FC<AddLinearDialogProps> = ({
               onChange={handleTextInputChange}
               required
               inputProps={{ min: 1 }}
-            />
-            <Autocomplete
-              value={formData.woodSpecies}
-              onChange={handleWoodSpeciesChange}
-              filterOptions={(options, params) => {
-                const filtered = filter(options, params);
-                const { inputValue } = params;
-                const isExisting = options.some((option) => inputValue === option);
-                if (inputValue !== '' && !isExisting) {
-                  filtered.push(`Add "${inputValue}"`);
-                }
-                return filtered;
-              }}
-              selectOnFocus
-              clearOnBlur
-              handleHomeEndKeys
-              options={woodSpeciesOptions}
-              renderOption={(props, option) => <li {...props}>{option}</li>}
-              freeSolo
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Wood Species"
-                  required
-                />
-              )}
             />
             <TextField
               name="description"

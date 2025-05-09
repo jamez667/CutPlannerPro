@@ -10,3 +10,4 @@ export interface AddPanelStockDialogProps {
   woodSpeciesOptions: string[];
   setWoodSpeciesOptions: (species: string[]) => void;
 }
+
