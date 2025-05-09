@@ -64,13 +64,12 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
 
   // Common kerf sizes in mm
   const commonKerfSizes = [
-    { value: 2.4, label: '2.4mm (3/32")' },
-    { value: 3.0, label: '3.0mm (1/8")' },
-    { value: 3.2, label: '3.2mm (1/8"+)' },
-    { value: 4.8, label: '4.8mm (3/16")' },
-    { value: 6.4, label: '6.4mm (1/4")' },
-    { value: 8.0, label: '8.0mm (5/16")' },
-    { value: 9.5, label: '9.5mm (3/8")' }
+    { value: 2.3813, label: '2.4mm (3/32")' },
+    { value: 3.1750, label: '3.2mm (1/8"+)' },
+    { value: 4.7625, label: '4.8mm (3/16")' },
+    { value: 6.3500, label: '6.4mm (1/4")' },
+    { value: 7.9375, label: '8.0mm (5/16")' },
+    { value: 9.5250, label: '9.5mm (3/8")' }
   ];
 
   // Load panel stock from cookies on component mount
@@ -460,8 +459,6 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
             
             // Mark piece as placed
             placedPieceIds.add(piece.id);
-            
-            console.log(`  Placed piece ${piece.id} at (${x},${y}) ${isRotated ? 'ROTATED' : ''} on sheet #${sheetIndex + 1}`);
           } else {
             console.log(`  Could not place piece ${piece.id} on this sheet #${sheetIndex + 1}`);
           }
@@ -499,7 +496,6 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
     
     // Calculate overall waste percentage
     let totalUsedArea = 0;
-    console.log('Layout count:', layouts.length);
     layouts.forEach(layout => {
       layout.placements.forEach(placement => {
         const expandedPiece = expandedPieces.find(c => c.id === placement.pieceId);
@@ -769,13 +765,7 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                   width: 120,
                   type: 'number',
                   renderCell: (params) => {
-                    const value = params.row.length;
-                    if (!useMetric) {
-                      const displayValue = convertFromMetric(value, units);
-                      return `${formatDimensionValue(displayValue, Dimension.LENGTH, units)}`;
-                    } else {
-                      return Math.round(value);
-                    }
+                    return `${formatDimensionValue(params.row.length, Dimension.LENGTH, units)}`;
                   }
                 },
                 { 
@@ -784,13 +774,7 @@ const PanelCuttingPlans: React.FC<RequiresUnitsProps> = ({ units }) => {
                   width: 120,
                   type: 'number',
                   renderCell: (params) => {
-                    const value = params.row.width;
-                    if (!useMetric) {
-                      const displayValue = convertFromMetric(value, units);
-                      return `${formatDimensionValue(displayValue, Dimension.WIDTH, units)}`;
-                    } else {
-                      return Math.round(value);
-                    }
+                    return formatDimensionValue(params.row.width, Dimension.WIDTH, units);
                   }
                 },
                 {

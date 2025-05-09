@@ -149,20 +149,20 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           // Add top edge with kerf positioned exactly at the edge (no offset)
           const yTopPos = placement.y;
           if (yTopPos > 0 && yTopPos < stock.width) {
-            allHorizontalCuts.add(Math.round(yTopPos));
+            allHorizontalCuts.add(yTopPos);
           }
           
           // Add bottom edge with kerf positioned after the piece (full kerf width)
           const yBottomPos = placement.y + width;
           if (yBottomPos > 0 && yBottomPos < stock.width) {
-            allHorizontalCuts.add(Math.round(yBottomPos));
+            allHorizontalCuts.add(yBottomPos);
           }
           
           // ONLY add vertical cuts at RIGHT edge of each piece
           // Add right edge with kerf positioned after the piece (full kerf width)
           const xRightPos = placement.x + length;
           if (xRightPos > 0 && xRightPos < stock.length) {
-            allVerticalCuts.add(Math.round(xRightPos));
+            allVerticalCuts.add(xRightPos);
           }
         });
         
@@ -246,8 +246,6 @@ const PanelCuttingVisualizer: React.FC<PanelCuttingVisualizerProps> = ({
           const y = PADDING + placement.y * newScaleFactor;
           const scaledWidth = width * newScaleFactor;
           const scaledLength = length * newScaleFactor;
-          
-          console.log(`Drawing piece at: (${x}, ${y}) with size: ${scaledLength}x${scaledWidth}`);
           
           ctx.fillRect(x, y, scaledLength, scaledWidth);
           

@@ -328,13 +328,7 @@ const MaterialWarehouse: React.FC<RequiresUnitsProps> = ({ units }) => {
       width: 140,
       type: 'number',
       renderCell: (params) => {
-        const value = params.row.length;
-        if (units === 'in') {
-          const displayValue = convertFromMetric(value, 'in');
-          return `${formatImperialFraction(displayValue)}`;
-        } else {
-          return Math.round(value);
-        }
+        return `${formatDimensionValue(params.row.length, Dimension.LENGTH, units)}`;
       }
     },
     { 
