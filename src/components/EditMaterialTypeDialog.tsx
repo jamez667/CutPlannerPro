@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,7 +14,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  SelectChangeEvent
 } from '@mui/material';
 import { MaterialType, MaterialTypeItem } from '../interfaces/MaterialType';
 import AddIcon from '@mui/icons-material/Add';
@@ -39,36 +40,32 @@ const EditMaterialTypeDialog: React.FC<EditMaterialTypeDialogProps> = ({
   const [commonItems, setCommonItems] = useState<string[]>([]);
   const [description, setDescription] = useState<string>('');
 
-  // List of all material types for the selected category
-  const materialTypeOptions = selectedCategory
-    ? materialTypes.find(m => m.category === selectedCategory)?.items.map(item => item.name) || []
-    : [];
+  // Memoize material type options to prevent unnecessary recalculations
+  const materialTypeOptions = React.useMemo(() => {
+    if (!selectedCategory) return [];
+    const category = materialTypes.find(m => m.category === selectedCategory);
+    return category?.items.map(item => item.name) || [];
+  }, [selectedCategory, materialTypes]);
 
-  // Effect to reset form when dialog opens or closes
+  // Reset form when dialog opens/closes
   useEffect(() => {
-    if (open) {
-      // Initialize with first category if available
-      if (materialTypes.length > 0) {
-        setSelectedCategory(materialTypes[0].category);
-      } else {
-        setSelectedCategory('');
+    if (open && materialTypes.length > 0) {
+      // Initialize with first category
+      const firstCategory = materialTypes[0].category;
+      setSelectedCategory(firstCategory);
+      
+      // Initialize with first material type in that category
+      if (materialTypes[0].items.length > 0) {
+        const firstMaterialType = materialTypes[0].items[0].name;
+        setSelectedMaterialType(firstMaterialType);
       }
-    } else {
+    } else if (!open) {
       resetForm();
     }
   }, [open, materialTypes]);
 
-  // Effect to update form when selected category changes
-  useEffect(() => {
-    if (selectedCategory && materialTypeOptions.length > 0) {
-      setSelectedMaterialType(materialTypeOptions[0]);
-    } else {
-      setSelectedMaterialType('');
-    }
-  }, [selectedCategory, materialTypeOptions]);
-
-  // Effect to load material data when a type is selected
-  useEffect(() => {
+  // Load material data when category or material type changes
+  const loadMaterialData = useCallback(() => {
     if (selectedCategory && selectedMaterialType) {
       const category = materialTypes.find(c => c.category === selectedCategory);
       if (category) {
@@ -86,6 +83,30 @@ const EditMaterialTypeDialog: React.FC<EditMaterialTypeDialogProps> = ({
     setCommonItems([]);
     setDescription('');
   }, [selectedCategory, selectedMaterialType, materialTypes]);
+
+  // Effect to load data when selection changes
+  useEffect(() => {
+    loadMaterialData();
+  }, [loadMaterialData]);
+
+  // Handle category change
+  const handleCategoryChange = (event: SelectChangeEvent) => {
+    const newCategory = event.target.value as string;
+    setSelectedCategory(newCategory);
+    
+    // Find the new category and set the first material type in it
+    const category = materialTypes.find(c => c.category === newCategory);
+    if (category && category.items.length > 0) {
+      setSelectedMaterialType(category.items[0].name);
+    } else {
+      setSelectedMaterialType('');
+    }
+  };
+
+  // Handle material type change
+  const handleMaterialTypeChange = (event: SelectChangeEvent) => {
+    setSelectedMaterialType(event.target.value as string);
+  };
 
   const resetForm = () => {
     setSelectedCategory('');
@@ -142,7 +163,7 @@ const EditMaterialTypeDialog: React.FC<EditMaterialTypeDialogProps> = ({
               labelId="category-select-label"
               value={selectedCategory}
               label="Category"
-              onChange={(e) => setSelectedCategory(e.target.value as string)}
+              onChange={handleCategoryChange}
             >
               {materialTypes.map((cat, index) => (
                 <MenuItem key={index} value={cat.category}>{cat.category}</MenuItem>
@@ -157,7 +178,7 @@ const EditMaterialTypeDialog: React.FC<EditMaterialTypeDialogProps> = ({
                 labelId="material-type-select-label"
                 value={selectedMaterialType}
                 label="Material Type"
-                onChange={(e) => setSelectedMaterialType(e.target.value as string)}
+                onChange={handleMaterialTypeChange}
               >
                 {materialTypeOptions.map((typeName, index) => (
                   <MenuItem key={index} value={typeName}>{typeName}</MenuItem>
