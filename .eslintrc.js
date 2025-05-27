@@ -1,15 +1,26 @@
 module.exports = {
   root: true,
   extends: ['react-app', 'react-app/jest'],
-  rules: {
-    // Add any custom rules here
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaVersion: 2020,
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true,
+    },
+  },
+  env: {
+    browser: true,
+    es6: true,
+    node: true,
   },
   settings: {
-    // Modern ESLint configuration
-    // These settings replace the removed options that were causing errors
     react: {
       version: 'detect',
     },
+  },
+  rules: {
+    // Add any custom rules here
   },
   overrides: [
     {
