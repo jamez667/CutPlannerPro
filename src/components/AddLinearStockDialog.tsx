@@ -69,7 +69,27 @@ const AddLinearDialog: React.FC<AddLinearStockDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          m: 1,
+          width: '100%',
+          maxWidth: 420,
+          borderRadius: 2,
+          boxShadow: 6,
+          '@media (max-width:600px)': {
+            m: 0,
+            maxWidth: '100vw',
+            minHeight: '100vh',
+            borderRadius: 0,
+          },
+        }
+      }}
+    >
       <form onSubmit={handleFormSubmit}>
         <DialogTitle>
           {editingId !== null ? 'Edit Linear Stock' : 'Add Linear Stock'}

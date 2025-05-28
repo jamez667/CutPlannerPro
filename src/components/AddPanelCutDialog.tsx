@@ -88,7 +88,27 @@ const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          m: 1,
+          width: '100%',
+          maxWidth: 420,
+          borderRadius: 2,
+          boxShadow: 6,
+          '@media (max-width:600px)': {
+            m: 0,
+            maxWidth: '100vw',
+            minHeight: '100vh',
+            borderRadius: 0,
+          },
+        }
+      }}
+    >
       <DialogTitle>Add New Piece</DialogTitle>
       <DialogContent>
         <TextField

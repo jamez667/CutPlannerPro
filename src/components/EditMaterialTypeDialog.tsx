@@ -153,7 +153,27 @@ const EditMaterialTypeDialog: React.FC<EditMaterialTypeDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="md" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          m: 1,
+          width: '100%',
+          maxWidth: 520,
+          borderRadius: 2,
+          boxShadow: 6,
+          '@media (max-width:600px)': {
+            m: 0,
+            maxWidth: '100vw',
+            minHeight: '100vh',
+            borderRadius: 0,
+          },
+        }
+      }}
+    >
       <DialogTitle>Edit Material Type</DialogTitle>
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 1 }}>
