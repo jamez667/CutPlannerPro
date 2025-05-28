@@ -4,6 +4,8 @@ import {
   TextField, FormControl, InputLabel, Select, MenuItem,
   FormHelperText
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from '@mui/material/IconButton';
 import { PanelPiece } from '../interfaces/PanelPiece';
 import { convertToMetric } from '../utils/unitConversion';
 
@@ -100,17 +102,50 @@ const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({
           maxWidth: 420,
           borderRadius: 2,
           boxShadow: 6,
+          display: 'flex',
+          flexDirection: 'column',
           '@media (max-width:600px)': {
             m: 0,
             maxWidth: '100vw',
             minHeight: '100vh',
             borderRadius: 0,
+            height: '100vh',
           },
         }
       }}
     >
-      <DialogTitle>Add New Piece</DialogTitle>
-      <DialogContent>
+      <DialogTitle sx={{
+        pr: 4,
+        position: 'relative',
+        '@media (max-width:600px)': { fontSize: 18, p: 2 }
+      }}>
+        Add New Piece
+        <IconButton
+          aria-label="close"
+          onClick={handleClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+            color: 'grey.500',
+            display: { xs: 'inline-flex', sm: 'none' }
+          }}
+          size="large"
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent
+        sx={{
+          flex: 1,
+          overflowY: 'auto',
+          '@media (max-width:600px)': {
+            p: 2,
+            pb: 1,
+            maxHeight: 'calc(100vh - 110px)'
+          }
+        }}
+      >
         <TextField
           margin="dense"
           label="Part Name"
@@ -169,7 +204,20 @@ const AddPanelPieceDialog: React.FC<AddPanelPieceDialogProps> = ({
           onChange={(e) => setNotes(e.target.value)}
         />
       </DialogContent>
-      <DialogActions>
+      <DialogActions
+        sx={{
+          p: 2,
+          '@media (max-width:600px)': {
+            position: 'sticky',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'white',
+            zIndex: 2,
+            boxShadow: '0 -2px 8px rgba(0,0,0,0.04)'
+          }
+        }}
+      >
         <Button onClick={handleClose}>Cancel</Button>
         <Button onClick={handleSubmit} variant="contained" color="primary">Add</Button>
       </DialogActions>
