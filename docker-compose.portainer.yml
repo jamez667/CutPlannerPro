@@ -1,0 +1,19 @@
+networks:
+  cutplannerpro-net:
+    driver: overlay
+
+services:
+  cutplannerpro:
+    image: ghcr.io/jamez667/cutplannerpro:latest
+    ports:
+      - "3012:80"
+    networks:
+      - cutplannerpro-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 5s

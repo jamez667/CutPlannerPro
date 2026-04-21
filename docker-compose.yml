@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  cutplannerpro:
+    build: .
+    networks:
+      - traefik-public
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.cutplannerpro.rule=Host(`cutplannerpro.localhost`)
+      - traefik.http.services.cutplannerpro.loadbalancer.server.port=80
+    restart: unless-stopped
+
+networks:
+  traefik-public:
+    external: true

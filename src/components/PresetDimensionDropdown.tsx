@@ -12,6 +12,7 @@ interface PresetDimensionDropdownProps {
   units: string;
   label: string;
   required?: boolean;
+  fullWidth?: boolean;
 }
 
 const PresetDimensionDropdown: React.FC<PresetDimensionDropdownProps> = ({
@@ -21,7 +22,8 @@ const PresetDimensionDropdown: React.FC<PresetDimensionDropdownProps> = ({
   dimension,
   units,
   label,
-  required = false
+  required = false,
+  fullWidth = false
 }) => {
   return (
     <Autocomplete
@@ -41,12 +43,14 @@ const PresetDimensionDropdown: React.FC<PresetDimensionDropdownProps> = ({
           label={`${label} (${units})`}
           type="number"
           required={required}
+          fullWidth={fullWidth}
         />
       )}
       freeSolo
       selectOnFocus
       clearOnBlur
       handleHomeEndKeys
+      fullWidth={fullWidth}
     />
   );
 };
