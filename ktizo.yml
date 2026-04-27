@@ -1,0 +1,22 @@
+# Ktizo deployment — picked up automatically by ktizo when this repo is registered.
+# Uses pre-built image from GHCR (pushed by CI on each merge to main).
+
+name: cutplannerpro
+
+services:
+  cutplannerpro:
+    image: ghcr.io/jamez667/cutplannerpro:${IMAGE_TAG:-latest}
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "ktizo"
+      traefik.http.routers.cutplannerpro.rule: "Host(`cutplanner.ktizo.local`)"
+      traefik.http.routers.cutplannerpro.entrypoints: "web"
+      traefik.http.routers.cutplannerpro.service: "cutplannerpro"
+      traefik.http.services.cutplannerpro.loadbalancer.server.port: "80"
+    networks:
+      - ktizo
+    restart: unless-stopped
+
+networks:
+  ktizo:
+    external: true
